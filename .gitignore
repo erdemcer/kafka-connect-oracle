@@ -1,0 +1,7 @@
+/target/
+/.settings/
+/.vscode/
+/.project
+/mvn
+/.classpath
+/src/test
