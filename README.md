@@ -1,6 +1,6 @@
 # Kafka Connect Oracle
 
-kafka-connect-oracle is a Kafka source connector for capturing all row based DML changes and streaming these changes to Kafka. Change data capture logic is based on Oracle LogMiner solution.
+kafka-connect-oracle is a Kafka source connector for capturing all row based DML changes and streaming these changes to Kafka.Change data capture logic is based on Oracle LogMiner solution.
 
 Only committed changes are pulled from Oracle which are Insert,Update,Delete operations. All streamed messages have related full "sql_redo" statement and parsed fields with values of sql statements. Parsed fields and values are kept in proper field type in schemas.
 
