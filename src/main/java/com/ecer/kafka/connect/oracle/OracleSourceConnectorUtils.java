@@ -330,8 +330,8 @@ public class OracleSourceConnectorUtils{
         case "Schema{FLOAT64}":
           o = Double.parseDouble(value);
           break;
-        case "Schema{org.apache.kafka.connect.data.Timestamp:INT64}":
-          o = Timestamp.valueOf(value.replace(TIMESTAMP_FIELD, "").trim());
+        case "Schema{org.apache.kafka.connect.data.Timestamp:INT64}":          
+          o = Timestamp.valueOf(value);
           break;
         case "Schema{STRING}":
         default:
@@ -339,10 +339,13 @@ public class OracleSourceConnectorUtils{
           break;
       }
       return o;
-    }
+    }    
 
-    private static String cleanString(String str) {
-      return str.replace("\"", "").replace("'", "").replace("IS NULL","= NULL").trim();
-    }
+    private static String cleanString(String str) {                
+      if (str.startsWith("TIMESTAMP"))str=str.replace("TIMESTAMP ", "");        
+      if (str.startsWith("'") && str.endsWith("'"))str=str.substring(1,str.length()-1);        
+      if (str.startsWith("\"") && str.endsWith("\""))str=str.substring(1,str.length()-1);        
+      return str.replace("IS NULL","= NULL").trim();
+    }       
 
 }
