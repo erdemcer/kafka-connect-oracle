@@ -69,10 +69,11 @@ public class OracleSourceTask extends SourceTask {
   @Override
   public void start(Map<String, String> map) {
     //TODO: Do things here that are required to start your task. This could be open a connection to a database, etc.
-    config=new OracleSourceConnectorConfig(map);
+    config=new OracleSourceConnectorConfig(map);    
     topic=config.getTopic();
     dbName=config.getDbNameAlias();
-    parseDmlData=config.getParseDmlData();    
+    parseDmlData=config.getParseDmlData();
+    String startSCN = config.getStartScn();
     log.info("Oracle Kafka Connector is starting on {}",config.getDbNameAlias());
     try {
       log.info("Connecting to database");
@@ -88,6 +89,12 @@ public class OracleSourceTask extends SourceTask {
       if (offset!=null){
         Object lastRecordedOffset = offset.get(POSITION_FIELD);
         streamOffset = (lastRecordedOffset != null) ? (Long) lastRecordedOffset : 0L;
+      }
+            
+      if (!startSCN.equals("")){
+        log.info("Resetting offset with specified SCN:{}",startSCN);
+        streamOffset=Long.parseLong(startSCN);
+        streamOffset-=1;        
       }
       
       if (config.getResetOffset()){

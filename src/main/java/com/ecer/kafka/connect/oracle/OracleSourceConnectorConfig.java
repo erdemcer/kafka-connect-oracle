@@ -21,6 +21,7 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public static final String PARSE_DML_DATA = "parse.dml.data";
   public static final String DB_FETCH_SIZE = "db.fetch.size";
   public static final String RESET_OFFSET = "reset.offset";
+  public static final String START_SCN = "start.scn";
 
   public OracleSourceConnectorConfig(ConfigDef config, Map<String, String> parsedConfig) {
     super(config, parsedConfig);
@@ -42,7 +43,8 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
         .define(TABLE_WHITELIST,Type.STRING,Importance.HIGH,"TAbles will be mined")
         .define(PARSE_DML_DATA,Type.BOOLEAN,Importance.HIGH,"Parse DML Data")
         .define(DB_FETCH_SIZE,Type.INT,Importance.HIGH,"Database Record Fetch Size")
-        .define(RESET_OFFSET,Type.BOOLEAN,Importance.HIGH,"Reset Offset");
+        .define(RESET_OFFSET,Type.BOOLEAN,Importance.HIGH,"Reset Offset")
+        .define(START_SCN,Type.STRING,"",Importance.LOW,"Start SCN");
   }
 
   /*public String getMy(){
@@ -59,4 +61,5 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public Boolean getParseDmlData(){return this.getBoolean(PARSE_DML_DATA);}
   public int getDbFetchSize(){return this.getInt(DB_FETCH_SIZE);}
   public Boolean getResetOffset(){return this.getBoolean(RESET_OFFSET);}
+  public String getStartScn(){return this.getString(START_SCN);}
 }
