@@ -6,6 +6,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 public class OracleConnectorSchema{
 
     public static final String POSITION_FIELD = "scnposition";    
+    public static final String COMMITSCN_POSITION_FIELD = "commitscnposition";    
+    public static final String ROWID_POSITION_FIELD = "rowid";
     public static final String LOG_MINER_OFFSET_FIELD="logminer";  
     public static final Schema OPTIONAL_TIMESTAMP_SCHEMA = org.apache.kafka.connect.data.Timestamp.builder().optional().build();
     public static final Schema TIMESTAMP_SCHEMA = org.apache.kafka.connect.data.Timestamp.builder().build();
@@ -13,6 +15,7 @@ public class OracleConnectorSchema{
 
     public static final String DML_ROW_SCHEMA_NAME ="DML_ROW";
     public static final String SCN_FIELD ="SCN";
+    public static final String COMMIT_SCN_FIELD ="COMMIT_SCN";
     public static final String OWNER_FIELD ="OWNER";
     public static final String SEG_OWNER_FIELD ="SEG_OWNER";
     public static final String TABLE_NAME_FIELD ="TABLE_NAME";
@@ -33,6 +36,7 @@ public class OracleConnectorSchema{
     public static final String DATA_TYPE_FIELD ="DATA_TYPE";
     public static final String DOT =".";
     public static final String COMMA = ",";
+    public static final String ROW_ID_FIELD = "ROW_ID";
 
     public static final String NUMBER_TYPE = "NUMBER";
     public static final String LONG_TYPE = "LONG";
