@@ -6,6 +6,68 @@ Only committed changes are pulled from Oracle which are Insert,Update,Delete ope
 
 Messages have old (before change) and new (after change) values of row fields for DML operations.Insert operation has only new values of row tagged as "data",update operation has new data tagged as "data" and also contains old values of row before change tagged as "before".Delete operation only contains old data tagged as "before".
 
+**Sample data**
+
+**Insert :**
+
+
+    {    
+        "SCN": 768889966828,
+        "SEG_OWNER": "TEST",
+        "TABLE_NAME": "TEST4",
+        "TIMESTAMP": 1537958606000,
+        "SQL_REDO": "insert into \"TEST\".\"TEST4\"(\"ID\",\"NAME\",\"PROCESS_DATE\",\"CDC_TIMESTAMP\") values (78238,NULL,NULL,TIMESTAMP ' 2018-09-26 10:43:26.643')",
+        "OPERATION": "INSERT",
+        "data": {
+            "ID": 78238.0,
+            "NAME": null,
+            "PROCESS_DATE": null,
+            "CDC_TIMESTAMP": 1537947806643
+        },
+        "before": null
+    }
+
+**Update :**
+
+    {
+        "SCN": 768889969452,
+        "SEG_OWNER": "TEST",
+        "TABLE_NAME": "TEST4",
+        "TIMESTAMP": 1537964106000,
+        "SQL_REDO": "update \"TEST\".\"TEST4\" set \"NAME\" = 'XaQCZKDINhTQBMevBZGGDjfPAsGqTUlCTyLThpmZ' where \"ID\" = 78238 and \"NAME\" IS NULL and \"PROCESS_DATE\" IS NULL and \"CDC_TIMESTAMP\" = TIMESTAMP ' 2018-09-26 10:43:26.643'",
+        "OPERATION": "UPDATE",
+        "data": {
+            "ID": 78238.0,
+            "NAME": "XaQCZKDINhTQBMevBZGGDjfPAsGqTUlCTyLThpmZ",
+            "PROCESS_DATE": null,
+            "CDC_TIMESTAMP": 1537947806643
+        },
+        "before": {
+            "ID": 78238.0,
+            "NAME": null,
+            "PROCESS_DATE": null,
+            "CDC_TIMESTAMP": 1537947806643
+        }
+    }
+
+**Delete :**
+
+    {
+        "SCN": 768889969632,
+        "SEG_OWNER": "TEST",
+        "TABLE_NAME": "TEST4",
+        "TIMESTAMP": 1537964142000,
+        "SQL_REDO": "delete from \"TEST\".\"TEST4\" where \"ID\" = 78238 and \"NAME\" = 'XaQCZKDINhTQBMevBZGGDjfPAsGqTUlCTyLThpmZ' and \"PROCESS_DATE\" IS NULL and \"CDC_TIMESTAMP\" = TIMESTAMP ' 2018-09-26 10:43:26.643'",
+        "OPERATION": "DELETE",
+        "data": null,
+        "before": {
+            "ID": 78238.0,
+            "NAME": "XaQCZKDINhTQBMevBZGGDjfPAsGqTUlCTyLThpmZ",
+            "PROCESS_DATE": null,
+            "CDC_TIMESTAMP": 1537947806643
+        }
+    }
+
 # Setting Up
 
 The database must be in archivelog mode and supplemental logging must be enabled.
