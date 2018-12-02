@@ -205,14 +205,13 @@ public class OracleSourceTask extends SourceTask {
       }
       
       log.info("Logminer stoppped successfully");       
-      
     } catch (SQLException e){
-      log.error("Error at poll "+e);
+      log.error("SQL error during poll",e );
     }catch(JSQLParserException e){
-      log.error("SQL Parser exception "+e);
+      log.error("SQL parser error during poll ", e);
     }
     catch(Exception e){
-      log.error("Error at polling {} topic :{} SQL :{}",e,topic,sqlX);
+      log.error("Error during poll on topic {} SQL :{}", topic, sqlX, e);
     }
     return null;
     
