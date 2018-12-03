@@ -98,6 +98,9 @@ public class OracleSourceConnectorUtils{
       SchemaBuilder dataSchemaBuiler = SchemaBuilder.struct().name("value");
       mineTableCols=dbConn.prepareCall(OracleConnectorSQL.TABLE_WITH_COLS.replace("$TABLE_OWNER$", owner).replace("$TABLE_NAME$", tableName));
       mineTableColsResultSet=mineTableCols.executeQuery();
+      if (!mineTableColsResultSet.isBeforeFirst()) {
+          log.warn("mineTableCols has no results for {}.{}", owner, tableName);
+      }
       while(mineTableColsResultSet.next()){
         String columnName = mineTableColsResultSet.getString(COLUMN_NAME_FIELD);
         Boolean nullable = mineTableColsResultSet.getString(NULLABLE_FIELD).equals("Y") ? true:false;
