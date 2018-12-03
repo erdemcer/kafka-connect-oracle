@@ -99,6 +99,7 @@ public class OracleSourceConnectorUtils{
       mineTableCols=dbConn.prepareCall(OracleConnectorSQL.TABLE_WITH_COLS.replace("$TABLE_OWNER$", owner).replace("$TABLE_NAME$", tableName));
       mineTableColsResultSet=mineTableCols.executeQuery();
       if (!mineTableColsResultSet.isBeforeFirst()) {
+    	  // TODO: consider throwing up here, or an NPE will be thrown in OracleSourceTask.poll()
           log.warn("mineTableCols has no results for {}.{}", owner, tableName);
       }
       while(mineTableColsResultSet.next()){
