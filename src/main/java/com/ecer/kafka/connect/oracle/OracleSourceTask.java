@@ -286,8 +286,8 @@ public class OracleSourceTask extends SourceTask {
 		  StringBuffer b = new StringBuffer();
 		  for (int i = 1; i < logMinerData.getMetaData().getColumnCount(); i++) {
 			  String columnName = logMinerData.getMetaData().getColumnName(i);
-			  String columnValue = logMinerData.getString(i);
-			  b.append("[" + columnName + "=" + columnValue + "]");
+			  Object columnValue = logMinerData.getObject(i);
+			  b.append("[" + columnName + "=" + columnValue.toString() + "]");
 		  }
 		  log.debug(b.toString());
 	  }
