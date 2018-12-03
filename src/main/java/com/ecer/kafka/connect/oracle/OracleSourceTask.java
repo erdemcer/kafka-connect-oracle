@@ -17,6 +17,7 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SQL_REDO_FIELD
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TABLE_NAME_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TEMPORARY_TABLE;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SRC_CON_ID_FIELD;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -201,6 +202,8 @@ public class OracleSourceTask extends SourceTask {
 
         ix++;
      
+        String containerId = logMinerData.getString(SRC_CON_ID_FIELD);
+        log.info("logminer event from container {}", containerId);
         String segOwner = logMinerData.getString(SEG_OWNER_FIELD); 
         String segName = logMinerData.getString(TABLE_NAME_FIELD);
         String sqlRedo = logMinerData.getString(SQL_REDO_FIELD);

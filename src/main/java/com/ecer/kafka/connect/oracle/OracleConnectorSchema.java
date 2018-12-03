@@ -37,6 +37,7 @@ public class OracleConnectorSchema{
     public static final String DOT =".";
     public static final String COMMA = ",";
     public static final String ROW_ID_FIELD = "ROW_ID";
+    public static final String SRC_CON_ID_FIELD = "SRC_CON_ID";
 
     public static final String NUMBER_TYPE = "NUMBER";
     public static final String LONG_TYPE = "LONG";
