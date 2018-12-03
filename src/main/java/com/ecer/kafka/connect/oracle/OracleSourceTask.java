@@ -196,8 +196,9 @@ public class OracleSourceTask extends SourceTask {
         String operation = logMinerData.getString(OPERATION_FIELD);
         Data row = new Data(scn, segOwner, segName, sqlRedo,timeStamp,operation);
         topic = config.getTopic().equals("") ? (config.getDbNameAlias()+DOT+row.getSegOwner()+DOT+row.getSegName()).toUpperCase() : topic;
-        //log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp()+" "+row.getSegName()+" "+row.getScn()+" "+commitScn);
+        log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp()+" "+row.getSegName()+" "+row.getScn()+" "+commitScn);
         if (ix % 100 == 0) log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp());
+        log.debug("createDataSchema({},{},{},{})", segOwner, segName, sqlRedo, operation);
         dataSchemaStruct = utils.createDataSchema(segOwner, segName, sqlRedo,operation);
         records.add(new SourceRecord(sourcePartition(), sourceOffset(scn,commitScn,rowId), topic,  dataSchemaStruct.getDmlRowSchema(), setValueV2(row,dataSchemaStruct)));                          
         streamOffsetScn=scn;
