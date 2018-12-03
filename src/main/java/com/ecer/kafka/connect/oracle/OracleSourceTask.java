@@ -284,7 +284,7 @@ public class OracleSourceTask extends SourceTask {
   private void logRawMinerData() throws SQLException {
 	  if (log.isDebugEnabled()) {
 		  StringBuffer b = new StringBuffer();
-		  for (int i = 0; i < logMinerData.getMetaData().getColumnCount(); i++) {
+		  for (int i = 1; i < logMinerData.getMetaData().getColumnCount(); i++) {
 			  String columnName = logMinerData.getMetaData().getColumnName(i);
 			  String columnValue = logMinerData.getString(i);
 			  b.append("[" + columnName + "=" + columnValue + "]");
