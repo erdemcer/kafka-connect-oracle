@@ -164,7 +164,8 @@ public class OracleSourceConnectorUtils{
         dataSchemaBuiler.field(columnName,columnSchema);
         com.ecer.kafka.connect.oracle.models.Column column = new com.ecer.kafka.connect.oracle.models.Column(owner, tableName, columnName, nullable, dataType, dataLength, dataScale, pkColumn, uqColumn,columnSchema);
         String keyTabCols = owner+DOT+tableName+DOT+columnName;
-        tabColsMap.put(keyTabCols, column);       
+        tabColsMap.put(keyTabCols, column); 
+        log.debug("tabColsMap entry added: {} = {}", keyTabCols, column.toString());
       }
       Schema tSchema = dataSchemaBuiler.optional().build();
       tableSchema.put(owner+DOT+tableName, tSchema);
