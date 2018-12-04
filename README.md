@@ -94,6 +94,14 @@ In order to execute connector successfully, connector must be started with privi
     grant  logmnr_role to kminer;
     alter user kminer quota unlimited on users;
 
+In a multitenant configuration, the privileged Oracle user must be a "common user" and some multitenant-specicic grants need to be made:
+
+    create role c##logmnr_role;
+    grant create session to c##logmnr_role;
+    grant  execute_catalog_role,select any transaction ,select any dictionary to c##logmnr_role;
+    create user c##kminer identified by kminerpass;
+    grant  c##logmnr_role to c##kminer;
+    alter user c##kminer quota unlimited on users set container_data = all container = current;
 
 # Configuration
 
@@ -116,6 +124,7 @@ In order to execute connector successfully, connector must be started with privi
 |parse.dml.data|Boolean|If it is true , captured sql DML statement will be parsed into fields and values.If it is false only sql DML statement is published.
 |reset.offset|Boolean|If it is true , offset value will be set to current SCN of database when connector started.If it is false connector will start from last offset value.
 |start.scn|Long|If it is set , offset value will be set this specified value and logminer will start at this SCN.If connector would like to be started from desired SCN , this property can be used.
+|multitenant|Boolean|If true, multitenant support is enabled.  If false, single instance configuration will be used.
 |||
 
 
@@ -136,6 +145,7 @@ In order to execute connector successfully, connector must be started with privi
     table.whitelist=TEST.*,TEST2.TABLE2
     parse.dml.data=true
     reset.offset=false
+    multitenant=false
 
 ## Building and Running
 
