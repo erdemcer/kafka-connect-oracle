@@ -14,16 +14,16 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.ROW_ID_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SCN_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SEG_OWNER_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SQL_REDO_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SRC_CON_ID_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TABLE_NAME_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TEMPORARY_TABLE;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_FIELD;
-import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SRC_CON_ID_FIELD;
 
+import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -74,7 +74,12 @@ public class OracleSourceTask extends SourceTask {
   static int ix=0;
   boolean skipRecord=true;
   private DataSchemaStruct dataSchemaStruct;
-
+  private ConnectorSQL sql;
+  
+  public OracleSourceTask() throws IOException {
+	  this.sql = new ConnectorSQL();
+  }
+  
   @Override
   public String version() {
     return VersionUtil.getVersion();
@@ -101,7 +106,7 @@ public class OracleSourceTask extends SourceTask {
     try {
       log.info("Connecting to database");
       dbConn = new OracleConnection().connect(config);
-      utils = new OracleSourceConnectorUtils(dbConn, config);
+      utils = new OracleSourceConnectorUtils(dbConn, config, sql);
       logMinerSelectSql = utils.getLogMinerSelectSql();      
 
       log.info("Starting LogMiner Session");
