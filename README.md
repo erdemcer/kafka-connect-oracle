@@ -166,3 +166,4 @@ In order to execute connector successfully, connector must be started with privi
     4.Performance Tuning
     5.Initial data load
     6.Bug fix
+    7.Multitenant Support
