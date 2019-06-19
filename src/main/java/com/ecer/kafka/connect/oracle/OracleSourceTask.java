@@ -1,8 +1,27 @@
 package com.ecer.kafka.connect.oracle;
 
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.BEFORE_DATA_ROW_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.COMMITSCN_POSITION_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.COMMIT_SCN_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.CSF_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.DATA_ROW_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.DOT;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.LOG_MINER_OFFSET_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.POSITION_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.ROWID_POSITION_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.ROW_ID_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SCN_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SEG_OWNER_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SQL_REDO_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SRC_CON_ID_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TABLE_NAME_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TEMPORARY_TABLE;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_FIELD;
+
+import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,9 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.ecer.kafka.connect.oracle.models.Data;
-import com.ecer.kafka.connect.oracle.models.DataSchemaStruct;
-
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -23,8 +39,10 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ecer.kafka.connect.oracle.models.Data;
+import com.ecer.kafka.connect.oracle.models.DataSchemaStruct;
+
 import net.sf.jsqlparser.JSQLParserException;
-import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.*;
 
 /**
  *  
@@ -56,7 +74,12 @@ public class OracleSourceTask extends SourceTask {
   static int ix=0;
   boolean skipRecord=true;
   private DataSchemaStruct dataSchemaStruct;
-
+  private ConnectorSQL sql;
+  
+  public OracleSourceTask() throws IOException {
+	  this.sql = new ConnectorSQL();
+  }
+  
   @Override
   public String version() {
     return VersionUtil.getVersion();
@@ -83,7 +106,7 @@ public class OracleSourceTask extends SourceTask {
     try {
       log.info("Connecting to database");
       dbConn = new OracleConnection().connect(config);
-      utils = new OracleSourceConnectorUtils(dbConn, config);
+      utils = new OracleSourceConnectorUtils(dbConn, config, sql);
       logMinerSelectSql = utils.getLogMinerSelectSql();      
 
       log.info("Starting LogMiner Session");
@@ -152,7 +175,7 @@ public class OracleSourceTask extends SourceTask {
       logMinerSelect=dbConn.prepareCall(logMinerSelectSql);
       logMinerSelect.setFetchSize(config.getDbFetchSize());
       logMinerSelect.setLong(1, streamOffsetCommitScn);
-      logMinerData=logMinerSelect.executeQuery();            
+      logMinerData=logMinerSelect.executeQuery();
       log.info("Logminer started successfully");
     }catch(SQLException e){
       throw new ConnectException("Error at database tier, Please check : "+e.toString());
@@ -166,6 +189,9 @@ public class OracleSourceTask extends SourceTask {
     try {
       ArrayList<SourceRecord> records = new ArrayList<>();
       while(!this.closed && logMinerData.next()){
+    	  if (log.isDebugEnabled()) {
+    		  logRawMinerData();
+    	  }
         Long scn=logMinerData.getLong(SCN_FIELD);
         Long commitScn=logMinerData.getLong(COMMIT_SCN_FIELD);
         String rowId=logMinerData.getString(ROW_ID_FIELD);
@@ -181,6 +207,8 @@ public class OracleSourceTask extends SourceTask {
 
         ix++;
      
+        String containerId = logMinerData.getString(SRC_CON_ID_FIELD);
+        log.info("logminer event from container {}", containerId);
         String segOwner = logMinerData.getString(SEG_OWNER_FIELD); 
         String segName = logMinerData.getString(TABLE_NAME_FIELD);
         String sqlRedo = logMinerData.getString(SQL_REDO_FIELD);
@@ -196,7 +224,7 @@ public class OracleSourceTask extends SourceTask {
         String operation = logMinerData.getString(OPERATION_FIELD);
         Data row = new Data(scn, segOwner, segName, sqlRedo,timeStamp,operation);
         topic = config.getTopic().equals("") ? (config.getDbNameAlias()+DOT+row.getSegOwner()+DOT+row.getSegName()).toUpperCase() : topic;
-        //log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp()+" "+row.getSegName()+" "+row.getScn()+" "+commitScn);
+        log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp()+" "+row.getSegName()+" "+row.getScn()+" "+commitScn);
         if (ix % 100 == 0) log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp());
         dataSchemaStruct = utils.createDataSchema(segOwner, segName, sqlRedo,operation);
         records.add(new SourceRecord(sourcePartition(), sourceOffset(scn,commitScn,rowId), topic,  dataSchemaStruct.getDmlRowSchema(), setValueV2(row,dataSchemaStruct)));                          
@@ -205,14 +233,13 @@ public class OracleSourceTask extends SourceTask {
       }
       
       log.info("Logminer stoppped successfully");       
-      
     } catch (SQLException e){
-      log.error("Error at poll "+e);
+      log.error("SQL error during poll",e );
     }catch(JSQLParserException e){
-      log.error("SQL Parser exception "+e);
+      log.error("SQL parser error during poll ", e);
     }
     catch(Exception e){
-      log.error("Error at polling {} topic :{} SQL :{}",e,topic,sqlX);
+      log.error("Error during poll on topic {} SQL :{}", topic, sqlX, e);
     }
     return null;
     
@@ -262,4 +289,15 @@ public class OracleSourceTask extends SourceTask {
     return offSet;
   }
 
+  private void logRawMinerData() throws SQLException {
+	  if (log.isDebugEnabled()) {
+		  StringBuffer b = new StringBuffer();
+		  for (int i = 1; i < logMinerData.getMetaData().getColumnCount(); i++) {
+			  String columnName = logMinerData.getMetaData().getColumnName(i);
+			  Object columnValue = logMinerData.getObject(i);
+			  b.append("[" + columnName + "=" + (columnValue == null ? "NULL" : columnValue.toString()) + "]");
+		  }
+		  log.debug(b.toString());
+	  }
+  }
 }

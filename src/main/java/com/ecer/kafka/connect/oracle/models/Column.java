@@ -113,4 +113,11 @@ public class Column{
     public void setColumnSchema(Schema columnSchema){
         this.columnSchema=columnSchema;
     }
+
+	@Override
+	public String toString() {
+		return "Column [owner=" + owner + ", tableName=" + tableName + ", columnName=" + columnName + ", nullable="
+				+ nullable + ", dataType=" + dataType + ", dataLength=" + dataLength + ", dataScale=" + dataScale
+				+ ", pkColumn=" + pkColumn + ", uqColumn=" + uqColumn + ", columnSchema=" + columnSchema + "]";
+	}
 }

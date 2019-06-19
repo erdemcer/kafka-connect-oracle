@@ -22,6 +22,7 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public static final String DB_FETCH_SIZE = "db.fetch.size";
   public static final String RESET_OFFSET = "reset.offset";
   public static final String START_SCN = "start.scn";
+  public static final String MULTITENANT = "multitenant";
 
   public OracleSourceConnectorConfig(ConfigDef config, Map<String, String> parsedConfig) {
     super(config, parsedConfig);
@@ -44,12 +45,10 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
         .define(PARSE_DML_DATA,Type.BOOLEAN,Importance.HIGH,"Parse DML Data")
         .define(DB_FETCH_SIZE,Type.INT,Importance.HIGH,"Database Record Fetch Size")
         .define(RESET_OFFSET,Type.BOOLEAN,Importance.HIGH,"Reset Offset")
-        .define(START_SCN,Type.STRING,"",Importance.LOW,"Start SCN");
+        .define(START_SCN,Type.STRING,"",Importance.LOW,"Start SCN")
+        .define(MULTITENANT, Type.BOOLEAN, Importance.HIGH, "Database is multitenant (container)");
   }
 
-  /*public String getMy(){
-    return this.getString(MY_SETTING_CONFIG);
-  }*/
   public String getDbNameAlias(){ return this.getString(DB_NAME_ALIAS);}
   public String getTopic(){ return this.getString(TOPIC_CONFIG);}
   public String getDbName(){ return this.getString(DB_NAME_CONFIG);}
@@ -62,4 +61,5 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public int getDbFetchSize(){return this.getInt(DB_FETCH_SIZE);}
   public Boolean getResetOffset(){return this.getBoolean(RESET_OFFSET);}
   public String getStartScn(){return this.getString(START_SCN);}
+  public Boolean getMultitenant() {return this.getBoolean(MULTITENANT);}
 }
