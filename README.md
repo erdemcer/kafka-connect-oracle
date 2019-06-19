@@ -98,7 +98,7 @@ In a multitenant configuration, the privileged Oracle user must be a "common use
 
     create role c##logmnr_role;
     grant create session to c##logmnr_role;
-    grant  execute_catalog_role,select any transaction ,select any dictionary to c##logmnr_role;
+    grant  execute_catalog_role,select any transaction ,select any dictionary,logmining to c##logmnr_role;
     create user c##kminer identified by kminerpass;
     grant  c##logmnr_role to c##kminer;
     alter user c##kminer quota unlimited on users set container_data = all container = current;
