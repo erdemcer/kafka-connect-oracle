@@ -14,7 +14,6 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.ROW_ID_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SCN_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SEG_OWNER_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SQL_REDO_FIELD;
-import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.SRC_CON_ID_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TABLE_NAME_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TEMPORARY_TABLE;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_FIELD;
@@ -32,15 +31,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.ecer.kafka.connect.oracle.models.Data;
+import com.ecer.kafka.connect.oracle.models.DataSchemaStruct;
+
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.ecer.kafka.connect.oracle.models.Data;
-import com.ecer.kafka.connect.oracle.models.DataSchemaStruct;
 
 import net.sf.jsqlparser.JSQLParserException;
 
@@ -103,11 +102,11 @@ public class OracleSourceTask extends SourceTask {
     parseDmlData=config.getParseDmlData();
     String startSCN = config.getStartScn();
     log.info("Oracle Kafka Connector is starting on {}",config.getDbNameAlias());
-    try {
-      log.info("Connecting to database");
+    try {      
       dbConn = new OracleConnection().connect(config);
       utils = new OracleSourceConnectorUtils(dbConn, config, sql);
-      logMinerSelectSql = utils.getLogMinerSelectSql();      
+      log.info("Connecting to database version {}",utils.getDbVersion());
+      logMinerSelectSql = utils.getLogMinerSelectSql();
 
       log.info("Starting LogMiner Session");
       logMinerStartScr=logMinerStartScr+logMinerOptions+") \n; end;";
@@ -226,7 +225,7 @@ public class OracleSourceTask extends SourceTask {
         topic = config.getTopic().equals("") ? (config.getDbNameAlias()+DOT+row.getSegOwner()+DOT+row.getSegName()).toUpperCase() : topic;
         //log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp()+" "+row.getSegName()+" "+row.getScn()+" "+commitScn);
         if (ix % 100 == 0) log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp());
-        dataSchemaStruct = utils.createDataSchema(segOwner, segName, sqlRedo,operation);
+        dataSchemaStruct = utils.createDataSchema(segOwner, segName, sqlRedo,operation);        
         records.add(new SourceRecord(sourcePartition(), sourceOffset(scn,commitScn,rowId), topic,  dataSchemaStruct.getDmlRowSchema(), setValueV2(row,dataSchemaStruct)));                          
         streamOffsetScn=scn;
         return records;

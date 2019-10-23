@@ -30,6 +30,7 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.UQ_COLUMN_FIEL
 import java.net.ConnectException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -40,13 +41,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.ecer.kafka.connect.oracle.models.DataSchemaStruct;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.ecer.kafka.connect.oracle.models.DataSchemaStruct;
 
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Expression;
@@ -107,6 +108,17 @@ public class OracleSourceConnectorUtils{
         return tableRecordSchema.get(tableName);
     }
 
+    protected String getDbVersion() throws SQLException{
+      String dbVersion ="0";
+      PreparedStatement dbVersionPs = dbConn.prepareCall(OracleConnectorSQL.DB_VERSION);
+      ResultSet dbVersionRs = dbVersionPs.executeQuery();
+      while (dbVersionRs.next()){
+        dbVersion = dbVersionRs.getString("VERSION");
+      }
+      dbVersionRs.close();
+      dbVersionPs.close();
+      return dbVersion;
+    }
 
     protected void parseTableWhiteList(){
         tableWhiteList=config.getTableWhiteList();
