@@ -75,8 +75,7 @@ public class OracleSourceConnectorUtils{
     private final Map<String,String> tableColType = new HashMap<>();   
     private final Map<String,Schema> tableSchema = new HashMap<>();
     private final Map<String,Schema> tableRecordSchema = new HashMap<>();
-    private final Map<String,com.ecer.kafka.connect.oracle.models.Column> tabColsMap = new HashMap<>();
-    private final ConnectorSQL sql;
+    private final Map<String,com.ecer.kafka.connect.oracle.models.Column> tabColsMap = new HashMap<>();    
 
     OracleSourceConnectorConfig config;
     Connection dbConn;
@@ -85,8 +84,7 @@ public class OracleSourceConnectorUtils{
     ResultSet mineTableColsResultSet;
     ResultSet mineTablesResultSet;
 
-    public OracleSourceConnectorUtils(Connection Conn,OracleSourceConnectorConfig Config, ConnectorSQL sql)throws SQLException {
-    	this.sql = sql;
+    public OracleSourceConnectorUtils(Connection Conn,OracleSourceConnectorConfig Config)throws SQLException {    	
         this.dbConn=Conn;
         this.config=Config;
         parseTableWhiteList();
@@ -136,13 +134,21 @@ public class OracleSourceConnectorUtils{
       log.info("Getting dictionary details for table : {}",tableName);
       //SchemaBuilder dataSchemaBuiler = SchemaBuilder.struct().name((config.getDbNameAlias()+DOT+owner+DOT+tableName+DOT+"Value").toLowerCase());
       SchemaBuilder dataSchemaBuiler = SchemaBuilder.struct().name("value");
+      String mineTableColsSql=OracleConnectorSQL.TABLE_WITH_COLS;
+      if (config.getMultitenant()){
+        mineTableColsSql=OracleConnectorSQL.TABLE_WITH_COLS_CDB;
+      }
+      mineTableColsSql=mineTableColsSql.replace("$TABLE_OWNER$", owner).replace("$TABLE_NAME$", tableName);
+      
+      /*
       if (config.getMultitenant()) {
     	  mineTableCols=dbConn.prepareCall(sql.getContainerDictionarySQL());
       } else {
           mineTableCols=dbConn.prepareCall(sql.getDictionarySQL());
       }
       mineTableCols.setString(ConnectorSQL.PARAMETER_OWNER, owner);
-      mineTableCols.setString(ConnectorSQL.PARAMETER_TABLE_NAME, tableName);
+      mineTableCols.setString(ConnectorSQL.PARAMETER_TABLE_NAME, tableName);*/
+      mineTableCols = dbConn.prepareCall(mineTableColsSql);
       mineTableColsResultSet=mineTableCols.executeQuery();
       if (!mineTableColsResultSet.isBeforeFirst()) {
     	  // TODO: consider throwing up here, or an NPE will be thrown in OracleSourceTask.poll()

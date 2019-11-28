@@ -73,12 +73,7 @@ public class OracleSourceTask extends SourceTask {
   static int ix=0;
   boolean skipRecord=true;
   private DataSchemaStruct dataSchemaStruct;
-  private ConnectorSQL sql;
-  
-  public OracleSourceTask() throws IOException {
-	  this.sql = new ConnectorSQL();
-  }
-  
+   
   @Override
   public String version() {
     return VersionUtil.getVersion();
@@ -104,7 +99,7 @@ public class OracleSourceTask extends SourceTask {
     log.info("Oracle Kafka Connector is starting on {}",config.getDbNameAlias());
     try {      
       dbConn = new OracleConnection().connect(config);
-      utils = new OracleSourceConnectorUtils(dbConn, config, sql);
+      utils = new OracleSourceConnectorUtils(dbConn, config);
       log.info("Connecting to database version {}",utils.getDbVersion());
       logMinerSelectSql = utils.getLogMinerSelectSql();
 
