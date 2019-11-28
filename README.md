@@ -24,7 +24,7 @@ Messages have old (before change) and new (after change) values of row fields fo
             "PROCESS_DATE": null,
             "CDC_TIMESTAMP": 1537947806643
         },
-        "before": null
+        "before": null 
     }
 
 **Update :**
