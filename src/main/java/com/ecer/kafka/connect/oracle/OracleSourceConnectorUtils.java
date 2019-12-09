@@ -387,7 +387,8 @@ public class OracleSourceConnectorUtils{
         case "Schema{FLOAT64}":
           o = Double.parseDouble(value);
           break;
-        case "Schema{org.apache.kafka.connect.data.Timestamp:INT64}":          
+        case "Schema{org.apache.kafka.connect.data.Timestamp:INT64}":
+          if (value.contains("+")) value = value.substring(0, value.indexOf("+"));
           o = Timestamp.valueOf(value);
           break;
         case "Schema{STRING}":
