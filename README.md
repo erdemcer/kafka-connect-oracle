@@ -4,7 +4,7 @@ kafka-connect-oracle is a Kafka source connector for capturing all row based DML
 
 Only committed changes are pulled from Oracle which are Insert,Update,Delete operations. All streamed messages have related full "sql_redo" statement and parsed fields with values of sql statements. Parsed fields and values are kept in proper field type in schemas.
 
-Messages have old (before change) and new (after change) values of row fields for DML operations.Insert operation has only new values of row tagged as "data",update operation has new data tagged as "data" and also contains old values of row before change tagged as "before".Delete operation only contains old data tagged as "before".
+Messages have old (before change) and new (after change) values of row fields for DML operations.Insert operation has only new values of row tagged as "data",update operation has new data tagged as "data" and also contains old values of row before change tagged as "before".Delete operation only contains old data tagged as "before". 
 
 **Sample data**
 
