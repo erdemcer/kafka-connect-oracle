@@ -20,6 +20,7 @@ public class OracleConnectorSchema{
     public static final String SEG_OWNER_FIELD ="SEG_OWNER";
     public static final String TABLE_NAME_FIELD ="TABLE_NAME";
     public static final String TIMESTAMP_FIELD ="TIMESTAMP";
+    public static final String COMMIT_TIMESTAMP_FIELD ="COMMIT_TIMESTAMP";
     public static final String SQL_REDO_FIELD ="SQL_REDO";
     public static final String OPERATION_FIELD ="OPERATION";
     public static final String DATA_ROW_FIELD ="data";
@@ -38,6 +39,7 @@ public class OracleConnectorSchema{
     public static final String COMMA = ",";
     public static final String ROW_ID_FIELD = "ROW_ID";
     public static final String SRC_CON_ID_FIELD = "SRC_CON_ID";
+    public static final String XID_FIELD = "XID";
 
     public static final String NUMBER_TYPE = "NUMBER";
     public static final String LONG_TYPE = "LONG";
@@ -48,7 +50,12 @@ public class OracleConnectorSchema{
     public static final String FLOAT_TYPE = "FLOAT";
     public static final String TEMPORARY_TABLE = "temporary tables";
 
+    public static final String OPERATION_START = "START";
+    public static final String OPERATION_COMMIT = "COMMIT";
+    public static final String OPERATION_ROLLBACK = "ROLLBACK";
     public static final String OPERATION_INSERT = "INSERT";
     public static final String OPERATION_UPDATE = "UPDATE";
     public static final String OPERATION_DELETE = "DELETE";
+
+    public static final int ORA_DESUPPORT_CM_VERSION=190000;
 }

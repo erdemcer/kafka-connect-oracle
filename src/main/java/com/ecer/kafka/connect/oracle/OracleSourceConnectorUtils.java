@@ -72,6 +72,7 @@ public class OracleSourceConnectorUtils{
     private String logMinerSelectWhereStmt;
     private String tableWhiteList;
     private String logMinerSelectSql = OracleConnectorSQL.LOGMINER_SELECT_WITHSCHEMA;
+    private String logMinerSelectSqlDeSupportCM = OracleConnectorSQL.LOGMINER_SELECT_WITHSCHEMA_DESUPPORT_CM;
     private final Map<String,String> tableColType = new HashMap<>();   
     private final Map<String,Schema> tableSchema = new HashMap<>();
     private final Map<String,Schema> tableRecordSchema = new HashMap<>();
@@ -94,6 +95,10 @@ public class OracleSourceConnectorUtils{
         return this.logMinerSelectSql;
     }
 
+    protected String getLogMinerSelectSqlDeSupportCM(){
+      return this.logMinerSelectSqlDeSupportCM;
+    }
+
     protected Map<String,String> getTableColType(){
         return this.tableColType;
     }
@@ -106,12 +111,12 @@ public class OracleSourceConnectorUtils{
         return tableRecordSchema.get(tableName);
     }
 
-    protected String getDbVersion() throws SQLException{
-      String dbVersion ="0";
+    protected int getDbVersion() throws SQLException{
+      int dbVersion = 0;
       PreparedStatement dbVersionPs = dbConn.prepareCall(OracleConnectorSQL.DB_VERSION);
       ResultSet dbVersionRs = dbVersionPs.executeQuery();
       while (dbVersionRs.next()){
-        dbVersion = dbVersionRs.getString("VERSION");
+        dbVersion = dbVersionRs.getInt("VERSION");
       }
       dbVersionRs.close();
       dbVersionPs.close();
@@ -128,6 +133,7 @@ public class OracleSourceConnectorUtils{
         }        
         logMinerSelectWhereStmt=logMinerSelectWhereStmt.substring(0,logMinerSelectWhereStmt.length()-4)+")";
         logMinerSelectSql+=logMinerSelectWhereStmt;
+        logMinerSelectSqlDeSupportCM+=logMinerSelectWhereStmt+"))";
     }
 
     protected void loadTable(String owner,String tableName,String operation) throws SQLException{
@@ -140,8 +146,7 @@ public class OracleSourceConnectorUtils{
       }
       mineTableColsSql=mineTableColsSql.replace("$TABLE_OWNER$", owner).replace("$TABLE_NAME$", tableName);
       
-      /*
-      if (config.getMultitenant()) {
+      /*if (config.getMultitenant()) {
     	  mineTableCols=dbConn.prepareCall(sql.getContainerDictionarySQL());
       } else {
           mineTableCols=dbConn.prepareCall(sql.getDictionarySQL());
