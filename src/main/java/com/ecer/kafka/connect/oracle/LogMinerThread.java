@@ -4,6 +4,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -92,16 +93,32 @@ public class LogMinerThread implements Runnable {
           log.info("Log miner process is waiting for 5 seconds before start on Thread");
           Thread.sleep(5000);
           skipRecord=false;
-          Boolean newLogFilesExists = OracleSqlUtils.getLogFiles(dbConn, OracleConnectorSQL.LOGMINER_LOG_FILES, streamOffsetScn);
-          log.info("Log miner will start , startScn : {} ",streamOffsetScn);
-          if (newLogFilesExists) {
-              logMinerStartStmt.setLong(1, streamOffsetScn);
-              logMinerStartStmt.execute();          
-          }                
-          logMinerSelect=dbConn.prepareCall(logMinerSelectSql);
-          logMinerSelect.setFetchSize(dbFetchSize);
-          logMinerSelect.setLong(1, streamOffsetScn);
-          logMinerData=logMinerSelect.executeQuery();
+          int iError = 0;
+          while(true){
+            Boolean newLogFilesExists = OracleSqlUtils.getLogFilesV2(dbConn, streamOffsetScn);
+            log.info("Log miner will start , startScn : {} ",streamOffsetScn);
+            try {
+              if (newLogFilesExists) {
+                logMinerStartStmt.setLong(1, streamOffsetScn);
+                logMinerStartStmt.execute();
+              }
+              logMinerSelect=dbConn.prepareCall(logMinerSelectSql);
+              logMinerSelect.setFetchSize(dbFetchSize);
+              logMinerSelect.setLong(1, streamOffsetScn);
+              logMinerData=logMinerSelect.executeQuery();                     
+            } catch (SQLException se) {
+              iError++;
+              log.error("Logminer start exception {} , {}",se.getMessage(),iError);
+              if (iError>10){
+                log.error("Logminer could not start successfully and it will exit");
+                return;
+              }                
+              log.info("Waiting for log switch");
+              Thread.sleep(iError*1000);
+              continue;              
+            }
+            break;
+          }
           log.info("Logminer started successfully on Thread");
           while(!this.closed && logMinerData.next()){
             try {
@@ -203,6 +220,12 @@ public class LogMinerThread implements Runnable {
         log.error("Thread runtime exception");
       } catch (Exception e) {
         log.error("Thread general exception {}",e);
+        try {
+          OracleSqlUtils.executeCallableStmt(dbConn, OracleConnectorSQL.STOP_LOGMINER_CMD);  
+        } catch (Exception e2) {
+          log.error("Thread general exception stop logminer {}",e2.getMessage());
+        }
+                
       }
   }
 

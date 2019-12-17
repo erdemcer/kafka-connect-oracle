@@ -274,6 +274,7 @@ public class OracleSourceTask extends SourceTask {
     try {            
       log.info("Logminer session cancel");
       logMinerSelect.cancel();
+      OracleSqlUtils.executeCallableStmt(dbConn, OracleConnectorSQL.STOP_LOGMINER_CMD);
       if (dbConn!=null){
         log.info("Closing database connection.Last SCN : {}",streamOffsetScn);        
         logMinerSelect.close();
