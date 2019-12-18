@@ -35,6 +35,8 @@ public class OracleSqlUtils {
             log.info("Base log files {}",rs.getString("NAME"));
             logFilesBase.add(rs.getString("NAME"));
         }
+        rs.close();
+        ps.close();
 
         ps = conn.prepareCall(OracleConnectorSQL.LOGMINER_LOG_FILES_LOGMNR$);
         rs = ps.executeQuery();
