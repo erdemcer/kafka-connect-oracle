@@ -143,8 +143,13 @@ public class LogMinerThread implements Runnable {
                     row.setCommitScn(commitScn);
                     ix++;
                     if (ix % 100 == 0) log.info(String.format("Fetched %s rows from database %s ",ix,dbNameAlias)+" "+row.getCommitTimestamp());
-                    //log.info(row.getScn()+"-"+row.getCommitScn()+"-"+row.getTimestamp()+"-"+"-"+row.getCommitTimestamp()+"-"+row.getXid()+"-"+row.getSegName()+"-"+row.getRowId()+"-"+row.getOperation());
-                    sourceRecordMq.offer(createRecords(row));
+                    //log.info(row.getScn()+"-"+row.getCommitScn()+"-"+row.getTimestamp()+"-"+"-"+row.getCommitTimestamp()+"-"+row.getXid()+"-"+row.getSegName()+"-"+row.getRowId()+"-"+row.getOperation());                    
+                    try {
+                      sourceRecordMq.offer(createRecords(row)); 
+                    } catch (Exception eCreateRecord) {
+                      log.error("Error during create record on topic {} xid :{} SQL :{}", topicName, xid,sqlX, eCreateRecord);
+                      continue;
+                    }                    
                   }
                   trnCollection.remove(xid);
                 }                  
