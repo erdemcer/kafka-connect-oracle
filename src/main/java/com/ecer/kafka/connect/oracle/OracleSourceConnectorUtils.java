@@ -407,7 +407,7 @@ public class OracleSourceConnectorUtils{
     private static String cleanString(String str) {                
       if (str.startsWith("TIMESTAMP"))str=str.replace("TIMESTAMP ", "");        
       if (str.startsWith("'") && str.endsWith("'"))str=str.substring(1,str.length()-1);        
-      if (str.startsWith("\"") && str.endsWith("\""))str=str.substring(1,str.length()-1);        
+      if (str.startsWith("\"") && str.endsWith("\"") && str.length()>1)str=str.substring(1,str.length()-1);
       return str.replace("IS NULL","= NULL").trim();
     }       
 

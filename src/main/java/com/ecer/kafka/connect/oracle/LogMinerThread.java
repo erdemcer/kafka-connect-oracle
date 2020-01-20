@@ -67,7 +67,9 @@ public class LogMinerThread implements Runnable {
     HashMap<String,Transaction> trnCollection = new HashMap<>();    
     boolean skipRecord=true;
     static int ix=0;
-    String sqlX="";
+    String sqlX="";    
+    int sequence = 0;
+    int oldSequence = 0;
     private String topicName=null;
     private String topicConfig=null;
     private String dbNameAlias=null;
@@ -122,8 +124,13 @@ public class LogMinerThread implements Runnable {
           log.info("Logminer started successfully on Thread");
           while(!this.closed && logMinerData.next()){
             try {
+              if ((sequence>0)&&(logMinerData.getInt("RBASQN")-sequence)>1){
+                log.error("Captured archive and log files have changed , regetting log files");
+                break;
+              }
+              sequence = logMinerData.getInt("RBASQN");              
               String operation = logMinerData.getString(OPERATION_FIELD);
-              String xid = logMinerData.getString(XID_FIELD);        
+              String xid = logMinerData.getString(XID_FIELD);
               Long scn=logMinerData.getLong(SCN_FIELD);
               Timestamp timeStamp=logMinerData.getTimestamp(TIMESTAMP_FIELD);
               Timestamp commitTimeStamp=logMinerData.getTimestamp(COMMIT_TIMESTAMP_FIELD);
@@ -142,12 +149,12 @@ public class LogMinerThread implements Runnable {
                     row.setCommitTimestamp(commitTimeStamp);
                     row.setCommitScn(commitScn);
                     ix++;
-                    if (ix % 100 == 0) log.info(String.format("Fetched %s rows from database %s ",ix,dbNameAlias)+" "+row.getCommitTimestamp());
+                    if (ix % 100 == 0) log.info(String.format("Fetched %s rows from db:%s ",ix,dbNameAlias)+" "+sequence+" "+oldSequence+" "+row.getScn()+" "+row.getCommitScn()+" "+row.getCommitTimestamp());
                     //log.info(row.getScn()+"-"+row.getCommitScn()+"-"+row.getTimestamp()+"-"+"-"+row.getCommitTimestamp()+"-"+row.getXid()+"-"+row.getSegName()+"-"+row.getRowId()+"-"+row.getOperation());                    
                     try {
                       sourceRecordMq.offer(createRecords(row)); 
-                    } catch (Exception eCreateRecord) {
-                      log.error("Error during create record on topic {} xid :{} SQL :{}", topicName, xid,sqlX, eCreateRecord);
+                    } catch (Exception eCreateRecord) {                      
+                      log.error("Error during create record on topic {} xid :{} SQL :{}", topicName, xid,row.getSqlRedo(), eCreateRecord);
                       continue;
                     }                    
                   }
@@ -209,6 +216,7 @@ public class LogMinerThread implements Runnable {
                 }
               }
               streamOffsetScn = scn;
+              oldSequence = sequence;
             } catch(Exception e){
                 log.error("Inner Error during poll on topic {} SQL :{}", topicName, sqlX, e);                        
                 continue;
