@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import com.ecer.kafka.connect.oracle.models.Data;
 import com.ecer.kafka.connect.oracle.models.DataSchemaStruct;
@@ -44,6 +45,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.sf.jsqlparser.JSQLParserException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  *  
@@ -78,7 +81,8 @@ public class OracleSourceTask extends SourceTask {
   private DataSchemaStruct dataSchemaStruct;
   Boolean oraDeSupportCM=false;
   BlockingQueue<SourceRecord> sourceRecordMq = new LinkedBlockingQueue<>();    
-  Thread tLogMiner;
+  LogMinerThread tLogMiner;
+  ExecutorService executor = Executors.newFixedThreadPool(1);
    
   @Override
   public String version() {
@@ -94,6 +98,7 @@ public class OracleSourceTask extends SourceTask {
     dbConn.close();
   }
 
+  
   @Override
   public void start(Map<String, String> map) {
     //TODO: Do things here that are required to start your task. This could be open a connection to a database, etc.
@@ -191,8 +196,25 @@ public class OracleSourceTask extends SourceTask {
       logMinerData=logMinerSelect.executeQuery();
       log.info("Logminer started successfully");
       }else{
-        tLogMiner = new Thread(new LogMinerThread(sourceRecordMq,dbConn,streamOffsetScn, logMinerStartStmt,logMinerSelectSql,config.getDbFetchSize(),topic,dbName,utils));
-        tLogMiner.start();
+        //tLogMiner = new Thread(new LogMinerThread(sourceRecordMq,dbConn,streamOffsetScn, logMinerStartStmt,logMinerSelectSql,config.getDbFetchSize(),topic,dbName,utils));        
+        tLogMiner = new LogMinerThread(sourceRecordMq,dbConn,streamOffsetScn, logMinerStartStmt,logMinerSelectSql,config.getDbFetchSize(),topic,dbName,utils);
+        //tLogMiner.start();
+        executor.submit(tLogMiner);
+        
+        Runtime.getRuntime().addShutdownHook(new Thread(){
+          @Override
+          public void run(){
+            tLogMiner.shutDown();
+            executor.shutdown();
+            try {              
+              log.info("Waiting for logminer thread to shut down,exiting cleanly");
+              if (executor.awaitTermination(20000, TimeUnit.MILLISECONDS)) {                
+              }
+            } catch (Exception e) {
+              log.error(e.getMessage());
+            }
+          }
+        });
       }
     }catch(SQLException e){
       throw new ConnectException("Error at database tier, Please check : "+e.toString());
@@ -250,7 +272,7 @@ public class OracleSourceTask extends SourceTask {
           return records;
         }
       }else{
-        //log.info("Consumer :{}",sourceRecordMq.take());
+        
         records.add(sourceRecordMq.take());
         return records;
       }      
@@ -273,7 +295,7 @@ public class OracleSourceTask extends SourceTask {
     this.closed=true;
     try {            
       log.info("Logminer session cancel");
-      logMinerSelect.cancel();
+      logMinerSelect.close();
       OracleSqlUtils.executeCallableStmt(dbConn, OracleConnectorSQL.STOP_LOGMINER_CMD);
       if (dbConn!=null){
         log.info("Closing database connection.Last SCN : {}",streamOffsetScn);        
@@ -281,7 +303,7 @@ public class OracleSourceTask extends SourceTask {
         logMinerStartStmt.close();        
         dbConn.close();
       }
-    } catch (SQLException e) {}
+    } catch (SQLException e) {log.error(e.getMessage());}
 
 
   }

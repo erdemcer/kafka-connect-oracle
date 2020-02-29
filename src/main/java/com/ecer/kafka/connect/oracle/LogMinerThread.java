@@ -1,5 +1,6 @@
 package com.ecer.kafka.connect.oracle;
 
+import java.net.ConnectException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -37,6 +38,7 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TEMPORARY_TABL
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.COMMIT_TIMESTAMP_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.XID_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_START;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_COMMIT;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_ROLLBACK;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_INSERT;
@@ -56,6 +58,7 @@ public class LogMinerThread implements Runnable {
     private Long streamOffsetScn;
     private Long streamOffsetCtrl;
     private Long streamOffsetCommitScn;
+    private String streamOffsetOperation;
     private String streamOffsetRowId;  
     CallableStatement logMinerStartStmt;
     PreparedStatement logMinerSelect;
@@ -169,6 +172,11 @@ public class LogMinerThread implements Runnable {
                 }                
               }
 
+              if (operation.equals(OPERATION_START)){
+                List<DMLRow> dmlRowCollectionNew = new ArrayList<>();
+                transaction = new Transaction(xid, scn, timeStamp, dmlRowCollectionNew);
+              }
+
               if ((operation.equals(OPERATION_INSERT))||(operation.equals(OPERATION_UPDATE))||(operation.equals(OPERATION_DELETE))){                
                 String rowId=logMinerData.getString(ROW_ID_FIELD);
                 boolean contSF = logMinerData.getBoolean(CSF_FIELD);
@@ -202,20 +210,23 @@ public class LogMinerThread implements Runnable {
                 //###log.info("txnCollection size:{}",trnCollection.size());
                 //DMLRow dmlRow = new DMLRow(xid, scn, timeStamp, operation, segOwner, segName, rowId, sqlRedo,topic);
                 transaction = trnCollection.get(xid);
-                if (transaction != null){
+                if (transaction != null){                  
                   dmlRowCollection = transaction.getDmlRowCollection();
                   dmlRowCollection.add(dmlRow);
                   transaction.setDmlRowCollection(dmlRowCollection);
                   //#log.info("SASSSSSSSS "+transaction.getXid()+"-"+transaction.getDmlRowCollection().toString());
                   trnCollection.replace(xid, transaction);
                 }else{
-                  //#log.error("Null Transaction {}",xid);
+                  //#log.error("Null Transaction {}",xid);                  
                   dmlRowCollection.add(dmlRow);
                   transaction = new Transaction(xid, scn, timeStamp, dmlRowCollection);
                   trnCollection.put(xid, transaction);
                 }
               }
               streamOffsetScn = scn;
+              streamOffsetOperation = operation;
+              streamOffsetCommitScn = commitScn;
+              streamOffsetRowId = xid;              
               oldSequence = sequence;
             } catch(Exception e){
                 log.error("Inner Error during poll on topic {} SQL :{}", topicName, sqlX, e);                        
@@ -224,7 +235,7 @@ public class LogMinerThread implements Runnable {
           }
           logMinerData.close();
           logMinerSelect.close();
-          log.info("Logminer stopped successfully on Thread");
+          log.info("Logminer stopped successfully on Thread , scn:{},commitScn:{},operation:{},xid:{}",streamOffsetScn,streamOffsetCommitScn,streamOffsetOperation,streamOffsetRowId);          
           log.info(trnCollection.toString());
         }        
       } catch (InterruptedException ie){
@@ -235,11 +246,16 @@ public class LogMinerThread implements Runnable {
         log.error("Thread general exception {}",e);
         try {
           OracleSqlUtils.executeCallableStmt(dbConn, OracleConnectorSQL.STOP_LOGMINER_CMD);  
+          throw new ConnectException("Logminer stopped because of "+e.getMessage());
         } catch (Exception e2) {
           log.error("Thread general exception stop logminer {}",e2.getMessage());
-        }
-                
+        }                
       }
+  }
+
+  public void shutDown(){
+    log.info("Logminer Thread shutdown called");
+    this.closed=true;    
   }
 
   private SourceRecord createRecords(DMLRow dmlRow) throws Exception{
