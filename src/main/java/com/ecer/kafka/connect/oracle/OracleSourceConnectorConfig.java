@@ -23,7 +23,9 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public static final String RESET_OFFSET = "reset.offset";
   public static final String START_SCN = "start.scn";
   public static final String MULTITENANT = "multitenant";
+  public static final String TABLE_BLACKLIST = "table.blacklist";
 
+  
   public OracleSourceConnectorConfig(ConfigDef config, Map<String, String> parsedConfig) {
     super(config, parsedConfig);
   }
@@ -46,7 +48,8 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
         .define(DB_FETCH_SIZE,Type.INT,Importance.HIGH,"Database Record Fetch Size")
         .define(RESET_OFFSET,Type.BOOLEAN,Importance.HIGH,"Reset Offset")
         .define(START_SCN,Type.STRING,"",Importance.LOW,"Start SCN")
-        .define(MULTITENANT, Type.BOOLEAN, Importance.HIGH, "Database is multitenant (container)");
+        .define(MULTITENANT, Type.BOOLEAN, Importance.HIGH, "Database is multitenant (container)")
+        .define(TABLE_BLACKLIST, Type.STRING, Importance.LOW, "Table will not be mined");
   }
 
   public String getDbNameAlias(){ return this.getString(DB_NAME_ALIAS);}
@@ -62,4 +65,5 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public Boolean getResetOffset(){return this.getBoolean(RESET_OFFSET);}
   public String getStartScn(){return this.getString(START_SCN);}
   public Boolean getMultitenant() {return this.getBoolean(MULTITENANT);}
+  public String getTableBlackList(){return this.getString(TABLE_BLACKLIST);}
 }

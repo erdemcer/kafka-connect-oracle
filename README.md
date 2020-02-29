@@ -125,6 +125,7 @@ In a multitenant configuration, the privileged Oracle user must be a "common use
 |reset.offset|Boolean|If it is true , offset value will be set to current SCN of database when connector started.If it is false connector will start from last offset value.
 |start.scn|Long|If it is set , offset value will be set this specified value and logminer will start at this SCN.If connector would like to be started from desired SCN , this property can be used.
 |multitenant|Boolean|If true, multitenant support is enabled.  If false, single instance configuration will be used.
+|table.blacklist|String|A comma separated list of database schema or table names which will not be captured.<br />For all schema capture **<SCHEMA_NAME>.*** <br /> For table capture **<SCHEMA_NAME>.<TABLE_NAME>** must be specified.|
 |||
 
 
@@ -143,6 +144,7 @@ In a multitenant configuration, the privileged Oracle user must be a "common use
     db.user.password=kminerpass
     db.fetch.size=1
     table.whitelist=TEST.*,TEST2.TABLE2
+    table.blacklist=TEST2.TABLE3
     parse.dml.data=true
     reset.offset=false
     multitenant=false

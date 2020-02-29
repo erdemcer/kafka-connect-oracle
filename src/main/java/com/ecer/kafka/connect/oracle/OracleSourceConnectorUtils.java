@@ -71,6 +71,7 @@ public class OracleSourceConnectorUtils{
     static final Logger log = LoggerFactory.getLogger(OracleSourceConnectorUtils.class);
     private String logMinerSelectWhereStmt;
     private String tableWhiteList;
+    private String tableBlackList;
     private String logMinerSelectSql = OracleConnectorSQL.LOGMINER_SELECT_WITHSCHEMA;
     private String logMinerSelectSqlDeSupportCM = OracleConnectorSQL.LOGMINER_SELECT_WITHSCHEMA_DESUPPORT_CM;
     private final Map<String,String> tableColType = new HashMap<>();   
@@ -125,6 +126,7 @@ public class OracleSourceConnectorUtils{
 
     protected void parseTableWhiteList(){
         tableWhiteList=config.getTableWhiteList();
+        tableBlackList=config.getTableBlackList();
         logMinerSelectWhereStmt="(";
         List<String> tabWithSchemas = Arrays.asList(tableWhiteList.split(","));
         for (String tables:tabWithSchemas){
@@ -132,6 +134,16 @@ public class OracleSourceConnectorUtils{
           logMinerSelectWhereStmt+="("+SEG_OWNER_FIELD+"='"+tabs.get(0)+ "'" + (tabs.get(1).equals("*") ? "":" and "+TABLE_NAME_FIELD+"='"+tabs.get(1)+ "'")+") or ";
         }        
         logMinerSelectWhereStmt=logMinerSelectWhereStmt.substring(0,logMinerSelectWhereStmt.length()-4)+")";
+
+        if (!tableBlackList.equals("")){          
+          logMinerSelectWhereStmt+=" and not (";
+          tabWithSchemas = Arrays.asList(tableBlackList.split(","));          
+          for (String tables:tabWithSchemas){            
+            List<String> tabs = Arrays.asList(tables.split("\\."));
+            logMinerSelectWhereStmt+="("+SEG_OWNER_FIELD+"='"+tabs.get(0)+ "'" + (tabs.get(1).equals("*") ? "":" and "+TABLE_NAME_FIELD+"='"+tabs.get(1)+ "'")+") or ";
+          }
+          logMinerSelectWhereStmt=logMinerSelectWhereStmt.substring(0,logMinerSelectWhereStmt.length()-4)+")";
+        }
         logMinerSelectSql+=logMinerSelectWhereStmt;
         logMinerSelectSqlDeSupportCM+=logMinerSelectWhereStmt+"))";
     }
