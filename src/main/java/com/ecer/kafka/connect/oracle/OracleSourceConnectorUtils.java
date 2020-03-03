@@ -71,7 +71,9 @@ public class OracleSourceConnectorUtils{
     static final Logger log = LoggerFactory.getLogger(OracleSourceConnectorUtils.class);
     private String logMinerSelectWhereStmt;
     private String tableWhiteList;
+    private String tableBlackList;
     private String logMinerSelectSql = OracleConnectorSQL.LOGMINER_SELECT_WITHSCHEMA;
+    private String logMinerSelectSqlDeSupportCM = OracleConnectorSQL.LOGMINER_SELECT_WITHSCHEMA_DESUPPORT_CM;
     private final Map<String,String> tableColType = new HashMap<>();   
     private final Map<String,Schema> tableSchema = new HashMap<>();
     private final Map<String,Schema> tableRecordSchema = new HashMap<>();
@@ -94,6 +96,10 @@ public class OracleSourceConnectorUtils{
         return this.logMinerSelectSql;
     }
 
+    protected String getLogMinerSelectSqlDeSupportCM(){
+      return this.logMinerSelectSqlDeSupportCM;
+    }
+
     protected Map<String,String> getTableColType(){
         return this.tableColType;
     }
@@ -106,12 +112,12 @@ public class OracleSourceConnectorUtils{
         return tableRecordSchema.get(tableName);
     }
 
-    protected String getDbVersion() throws SQLException{
-      String dbVersion ="0";
+    protected int getDbVersion() throws SQLException{
+      int dbVersion = 0;
       PreparedStatement dbVersionPs = dbConn.prepareCall(OracleConnectorSQL.DB_VERSION);
       ResultSet dbVersionRs = dbVersionPs.executeQuery();
       while (dbVersionRs.next()){
-        dbVersion = dbVersionRs.getString("VERSION");
+        dbVersion = dbVersionRs.getInt("VERSION");
       }
       dbVersionRs.close();
       dbVersionPs.close();
@@ -120,6 +126,7 @@ public class OracleSourceConnectorUtils{
 
     protected void parseTableWhiteList(){
         tableWhiteList=config.getTableWhiteList();
+        tableBlackList=config.getTableBlackList();
         logMinerSelectWhereStmt="(";
         List<String> tabWithSchemas = Arrays.asList(tableWhiteList.split(","));
         for (String tables:tabWithSchemas){
@@ -127,7 +134,18 @@ public class OracleSourceConnectorUtils{
           logMinerSelectWhereStmt+="("+SEG_OWNER_FIELD+"='"+tabs.get(0)+ "'" + (tabs.get(1).equals("*") ? "":" and "+TABLE_NAME_FIELD+"='"+tabs.get(1)+ "'")+") or ";
         }        
         logMinerSelectWhereStmt=logMinerSelectWhereStmt.substring(0,logMinerSelectWhereStmt.length()-4)+")";
+
+        if (!tableBlackList.equals("")){          
+          logMinerSelectWhereStmt+=" and not (";
+          tabWithSchemas = Arrays.asList(tableBlackList.split(","));          
+          for (String tables:tabWithSchemas){            
+            List<String> tabs = Arrays.asList(tables.split("\\."));
+            logMinerSelectWhereStmt+="("+SEG_OWNER_FIELD+"='"+tabs.get(0)+ "'" + (tabs.get(1).equals("*") ? "":" and "+TABLE_NAME_FIELD+"='"+tabs.get(1)+ "'")+") or ";
+          }
+          logMinerSelectWhereStmt=logMinerSelectWhereStmt.substring(0,logMinerSelectWhereStmt.length()-4)+")";
+        }
         logMinerSelectSql+=logMinerSelectWhereStmt;
+        logMinerSelectSqlDeSupportCM+=logMinerSelectWhereStmt+"))";
     }
 
     protected void loadTable(String owner,String tableName,String operation) throws SQLException{
@@ -140,8 +158,7 @@ public class OracleSourceConnectorUtils{
       }
       mineTableColsSql=mineTableColsSql.replace("$TABLE_OWNER$", owner).replace("$TABLE_NAME$", tableName);
       
-      /*
-      if (config.getMultitenant()) {
+      /*if (config.getMultitenant()) {
     	  mineTableCols=dbConn.prepareCall(sql.getContainerDictionarySQL());
       } else {
           mineTableCols=dbConn.prepareCall(sql.getDictionarySQL());
@@ -402,7 +419,7 @@ public class OracleSourceConnectorUtils{
     private static String cleanString(String str) {                
       if (str.startsWith("TIMESTAMP"))str=str.replace("TIMESTAMP ", "");        
       if (str.startsWith("'") && str.endsWith("'"))str=str.substring(1,str.length()-1);        
-      if (str.startsWith("\"") && str.endsWith("\""))str=str.substring(1,str.length()-1);        
+      if (str.startsWith("\"") && str.endsWith("\"") && str.length()>1)str=str.substring(1,str.length()-1);
       return str.replace("IS NULL","= NULL").trim();
     }       
 
