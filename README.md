@@ -8,6 +8,7 @@ Messages have old (before change) and new (after change) values of row fields fo
 
 # News
 
+*   Partial rollback detection has been implemented
 *   With new relases of Oracle database like 19c, CONTINUOUS_MINE option is desupported and Logminer has lost ability mining of redo and archive logs continuously.First release of this connector was based on this property.  But Connector  has now ability to capture all changed data(DML changes) without CONTINUOUS_MINE option for new relases of Oracle database.For this change all test have been done on single instances.Working on RAC support
 *   Table blacklist configuration property can be used to not capture specified table or schemas
 

@@ -15,8 +15,9 @@ public class DMLRow{
     private String rowId = null;
     private String sqlRedo = null;
     private String topic = null;
+    private String rollback = null;
 
-    public DMLRow(String xid,Long scn,Long commitScn,Timestamp timestamp,String operation,String segOwner,String segName,String rowId,String sqlRedo,String topic,Timestamp commitTimeStamp){
+    public DMLRow(String xid,Long scn,Long commitScn,Timestamp timestamp,String operation,String segOwner,String segName,String rowId,String sqlRedo,String topic,Timestamp commitTimeStamp,String rollback){
         this.xid = xid;
         this.scn = scn;
         this.commitScn = commitScn;
@@ -28,6 +29,7 @@ public class DMLRow{
         this.sqlRedo = sqlRedo;
         this.topic = topic;
         this.commitTimestamp = commitTimeStamp;
+        this.rollback = rollback;
     }
 
     public String getXid(){
@@ -117,6 +119,14 @@ public class DMLRow{
     public void setTopic(String topic){
         this.topic = topic;
     }    
+
+    public String getRollback(){
+        return rollback;
+    }
+
+    public void setRollback(String rollback){
+        this.rollback = rollback;
+    }
     
     @Override
     public String toString(){

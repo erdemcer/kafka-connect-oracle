@@ -151,12 +151,8 @@ public class OracleSourceTask extends SourceTask {
           }
           lastScnFirstPosRSet.close();
           lastScnFirstPosPs.close();
-          
-          //streamOffsetScn=lastScnFirstPos-1;
-          //streamOffsetScn=lastScnFirstPos;
+          log.info("Captured last SCN has first position:{}",streamOffsetScn);
         }
-
-        log.info("Captured last SCN has first position:{}",streamOffsetScn);
       }
       
       if (!startSCN.equals("")){

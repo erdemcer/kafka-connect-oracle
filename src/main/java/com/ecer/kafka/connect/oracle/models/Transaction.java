@@ -12,14 +12,16 @@ public class Transaction{
     private Boolean isCompleted = false;    
     //private HashMap<Integer,DMLRow> dmlRowCollection = new HashMap<>();    
     private List<DMLRow> dmlRowCollection ;
+    private Boolean containsRollback = false;
 
-    public Transaction(String xid,Long scn,Timestamp timestamp,List<DMLRow> dmlRowCollection){
+    public Transaction(String xid,Long scn,Timestamp timestamp,List<DMLRow> dmlRowCollection,Boolean containsRollback){
         this.xid = xid;
         this.scn = scn;
         this.timestamp = timestamp;
         this.commitOrRollback = null;
         this.isCompleted = false;
         this.dmlRowCollection = dmlRowCollection;
+        this.containsRollback = containsRollback;
     }
 
     public String getXid(){
@@ -69,5 +71,18 @@ public class Transaction{
     public void setDmlRowCollection(List<DMLRow> dmlRowCollection){
         this.dmlRowCollection = dmlRowCollection;
     }
+
+    public Boolean getContainsRollback(){
+        return containsRollback;   
+    }
+
+    public void setContainsRollback(Boolean containsRollback){
+        this.containsRollback = containsRollback;
+    }
+
+    @Override   
+    public String toString(){
+        return "Transaction [xid="+xid+", scn="+scn+", Dml Count="+dmlRowCollection.size()+"]";
+    }    
 
 }

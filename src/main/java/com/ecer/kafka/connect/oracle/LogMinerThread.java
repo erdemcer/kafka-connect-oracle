@@ -10,6 +10,8 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -44,6 +46,8 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_ROLL
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_INSERT;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_UPDATE;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_DELETE;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.ROLLBACK_FIELD;
+
 
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -59,7 +63,8 @@ public class LogMinerThread implements Runnable {
     private Long streamOffsetCtrl;
     private Long streamOffsetCommitScn;
     private String streamOffsetOperation;
-    private String streamOffsetRowId;  
+    private String streamOffsetRowId;
+    private String streamOffsetXid;  
     CallableStatement logMinerStartStmt;
     PreparedStatement logMinerSelect;
     String logMinerSelectSql;
@@ -67,7 +72,7 @@ public class LogMinerThread implements Runnable {
     ResultSet logMinerData;
     private boolean closed=false;
     Transaction transaction = null;
-    HashMap<String,Transaction> trnCollection = new HashMap<>();    
+    LinkedHashMap<String,Transaction> trnCollection = new LinkedHashMap<>();
     boolean skipRecord=true;
     static int ix=0;
     String sqlX="";    
@@ -99,6 +104,7 @@ public class LogMinerThread implements Runnable {
           Thread.sleep(5000);
           skipRecord=false;
           int iError = 0;
+
           while(true){
             Boolean newLogFilesExists = OracleSqlUtils.getLogFilesV2(dbConn, streamOffsetScn);
             log.info("Log miner will start , startScn : {} ",streamOffsetScn);
@@ -138,6 +144,7 @@ public class LogMinerThread implements Runnable {
               Timestamp timeStamp=logMinerData.getTimestamp(TIMESTAMP_FIELD);
               Timestamp commitTimeStamp=logMinerData.getTimestamp(COMMIT_TIMESTAMP_FIELD);
               Long commitScn=logMinerData.getLong(COMMIT_SCN_FIELD);
+              String rowId=logMinerData.getString(ROW_ID_FIELD);
               //#log.info(operation+"-"+xid+"-"+scn);
 
               if (operation.equals(OPERATION_COMMIT)){
@@ -145,6 +152,29 @@ public class LogMinerThread implements Runnable {
                 if (transaction!=null){
                   //###log.info("Commit found for xid:{}",xid);
                   //transaction.setIsCompleted(true);
+                  if (transaction.getContainsRollback()){
+                    int deletedRows=0;
+                    List<DMLRow> dmlRowCollOrigin = transaction.getDmlRowCollection();
+                    
+                    LinkedList<Integer> deleteList = new LinkedList<>();
+                    for (int r=0;r<dmlRowCollOrigin.size();r++){
+                      //log.info(dmlRowCollOrigin.get(r).toString()+"-"+r);
+                      if (dmlRowCollOrigin.get(r).getRollback().equals("1")){
+                        //log.info(dmlRowCollOrigin.get(r).toString()+"RB Work RBRBRB"+" - "+r+" - "+deletedRows);
+                        //log.info("Will delete "+(r-deletedRows)+":"+(r-1-deletedRows));
+                        deleteList.add(r-deletedRows);
+                        deleteList.add(r-1-deletedRows);
+                        deletedRows+=2;
+                      }
+                    }
+                    for(int it : deleteList){
+                      //log.info("WILL DELETE "+it+"-"+dmlRowCollOrigin.get(it).getXid()+"-"+dmlRowCollOrigin.get(it).getSegName()+"-"+dmlRowCollOrigin.get(it).getRowId()+"-"+dmlRowCollOrigin.get(it).getOperation());
+                      dmlRowCollOrigin.remove(it);
+                    }
+                    
+                    //log.info("Setting rowCollection");
+                    transaction.setDmlRowCollection(dmlRowCollOrigin);
+                  }
                   ListIterator<DMLRow> iterator = transaction.getDmlRowCollection().listIterator();
                   while (iterator.hasNext()){
                     //records.add(createRecords(iterator.next()));
@@ -152,7 +182,7 @@ public class LogMinerThread implements Runnable {
                     row.setCommitTimestamp(commitTimeStamp);
                     row.setCommitScn(commitScn);
                     ix++;
-                    if (ix % 100 == 0) log.info(String.format("Fetched %s rows from db:%s ",ix,dbNameAlias)+" "+sequence+" "+oldSequence+" "+row.getScn()+" "+row.getCommitScn()+" "+row.getCommitTimestamp());
+                    if (ix % 10000 == 0) log.info(String.format("Fetched %s rows from db:%s ",ix,dbNameAlias)+" "+sequence+" "+oldSequence+" "+row.getScn()+" "+row.getCommitScn()+" "+row.getCommitTimestamp());
                     //log.info(row.getScn()+"-"+row.getCommitScn()+"-"+row.getTimestamp()+"-"+"-"+row.getCommitTimestamp()+"-"+row.getXid()+"-"+row.getSegName()+"-"+row.getRowId()+"-"+row.getOperation());                    
                     try {
                       sourceRecordMq.offer(createRecords(row)); 
@@ -174,12 +204,15 @@ public class LogMinerThread implements Runnable {
 
               if (operation.equals(OPERATION_START)){
                 List<DMLRow> dmlRowCollectionNew = new ArrayList<>();
-                transaction = new Transaction(xid, scn, timeStamp, dmlRowCollectionNew);
+                transaction = new Transaction(xid, scn, timeStamp, dmlRowCollectionNew, false);
+                trnCollection.put(xid, transaction);
               }
 
               if ((operation.equals(OPERATION_INSERT))||(operation.equals(OPERATION_UPDATE))||(operation.equals(OPERATION_DELETE))){                
-                String rowId=logMinerData.getString(ROW_ID_FIELD);
+                
                 boolean contSF = logMinerData.getBoolean(CSF_FIELD);
+                String rollback=logMinerData.getString(ROLLBACK_FIELD);
+                Boolean trContainsRollback = rollback.equals("1") ? true : false;
                 if (skipRecord){
                   if ((scn.equals(streamOffsetCtrl))&&(commitScn.equals(streamOffsetCommitScn))&&(rowId.equals(streamOffsetRowId))&&(!contSF)){
                     skipRecord=false;
@@ -202,7 +235,7 @@ public class LogMinerThread implements Runnable {
                 //@Data row = new Data(scn, segOwner, segName, sqlRedo,timeStamp,operation);
                 //@topic = config.getTopic().equals("") ? (config.getDbNameAlias()+DOT+row.getSegOwner()+DOT+row.getSegName()).toUpperCase() : topic;
                 topicName = topicConfig.equals("") ? (dbNameAlias+DOT+segOwner+DOT+segName).toUpperCase() : topicConfig;
-                DMLRow dmlRow = new DMLRow(xid, scn, commitScn , timeStamp, operation, segOwner, segName, rowId, sqlRedo,topicName,commitTimeStamp);
+                DMLRow dmlRow = new DMLRow(xid, scn, commitScn , timeStamp, operation, segOwner, segName, rowId, sqlRedo,topicName,commitTimeStamp,rollback);
                 //#log.info("Row :{} , scn:{} , commitScn:{} ,sqlRedo:{}",ix,scn,commitScn,sqlX);
 
                 //dmlRowCollection2.clear();
@@ -214,19 +247,20 @@ public class LogMinerThread implements Runnable {
                   dmlRowCollection = transaction.getDmlRowCollection();
                   dmlRowCollection.add(dmlRow);
                   transaction.setDmlRowCollection(dmlRowCollection);
-                  //#log.info("SASSSSSSSS "+transaction.getXid()+"-"+transaction.getDmlRowCollection().toString());
+                  if (!transaction.getContainsRollback()) transaction.setContainsRollback(trContainsRollback);
                   trnCollection.replace(xid, transaction);
                 }else{
                   //#log.error("Null Transaction {}",xid);                  
                   dmlRowCollection.add(dmlRow);
-                  transaction = new Transaction(xid, scn, timeStamp, dmlRowCollection);
+                  transaction = new Transaction(xid, scn, timeStamp, dmlRowCollection, trContainsRollback);                  
                   trnCollection.put(xid, transaction);
                 }
               }
               streamOffsetScn = scn;
               streamOffsetOperation = operation;
               streamOffsetCommitScn = commitScn;
-              streamOffsetRowId = xid;              
+              streamOffsetRowId = rowId;
+              streamOffsetXid = xid;            
               oldSequence = sequence;
             } catch(Exception e){
                 log.error("Inner Error during poll on topic {} SQL :{}", topicName, sqlX, e);                        
@@ -235,7 +269,7 @@ public class LogMinerThread implements Runnable {
           }
           logMinerData.close();
           logMinerSelect.close();
-          log.info("Logminer stopped successfully on Thread , scn:{},commitScn:{},operation:{},xid:{}",streamOffsetScn,streamOffsetCommitScn,streamOffsetOperation,streamOffsetRowId);          
+          log.info("Logminer stopped successfully on Thread , scn:{},commitScn:{},operation:{},xid:{},rowid:{}",streamOffsetScn,streamOffsetCommitScn,streamOffsetOperation,streamOffsetXid,streamOffsetRowId);
           log.info(trnCollection.toString());
         }        
       } catch (InterruptedException ie){

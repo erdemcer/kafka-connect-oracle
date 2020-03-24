@@ -40,6 +40,7 @@ public class OracleConnectorSchema{
     public static final String ROW_ID_FIELD = "ROW_ID";
     public static final String SRC_CON_ID_FIELD = "SRC_CON_ID";
     public static final String XID_FIELD = "XID";
+    public static final String ROLLBACK_FIELD = "ROLLBACK";
 
     public static final String NUMBER_TYPE = "NUMBER";
     public static final String LONG_TYPE = "LONG";
