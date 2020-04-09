@@ -18,6 +18,8 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TABLE_NAME_FIE
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TEMPORARY_TABLE;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.ORA_DESUPPORT_CM_VERSION;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_DDL;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.DDL_TOPIC_POSTFIX;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -248,8 +250,9 @@ public class OracleSourceTask extends SourceTask {
           String segOwner = logMinerData.getString(SEG_OWNER_FIELD); 
           String segName = logMinerData.getString(TABLE_NAME_FIELD);
           String sqlRedo = logMinerData.getString(SQL_REDO_FIELD);
+          String operation = logMinerData.getString(OPERATION_FIELD);
           if (sqlRedo.contains(TEMPORARY_TABLE)) continue;
-
+          if (operation.equals(OPERATION_DDL) && (logMinerData.getString("INFO").startsWith("INTERNAL DDL"))) continue;
           while(contSF){
             logMinerData.next();
             sqlRedo +=  logMinerData.getString(SQL_REDO_FIELD);
@@ -257,12 +260,13 @@ public class OracleSourceTask extends SourceTask {
           } 
           sqlX=sqlRedo;        
           Timestamp timeStamp=logMinerData.getTimestamp(TIMESTAMP_FIELD);
-          String operation = logMinerData.getString(OPERATION_FIELD);
+
           Data row = new Data(scn, segOwner, segName, sqlRedo,timeStamp,operation);
-          topic = config.getTopic().equals("") ? (config.getDbNameAlias()+DOT+row.getSegOwner()+DOT+row.getSegName()).toUpperCase() : topic;
+          topic = config.getTopic().equals("") ? (config.getDbNameAlias()+DOT+row.getSegOwner()+DOT+(operation.equals(OPERATION_DDL) ? DDL_TOPIC_POSTFIX : segName)).toUpperCase() : topic;
           //log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp()+" "+row.getSegName()+" "+row.getScn()+" "+commitScn);
           if (ix % 100 == 0) log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp());
-          dataSchemaStruct = utils.createDataSchema(segOwner, segName, sqlRedo,operation);        
+          dataSchemaStruct = utils.createDataSchema(segOwner, segName, sqlRedo,operation);   
+          if (operation.equals(OPERATION_DDL)) row.setSegName(DDL_TOPIC_POSTFIX);     
           records.add(new SourceRecord(sourcePartition(), sourceOffset(scn,commitScn,rowId), topic,  dataSchemaStruct.getDmlRowSchema(), setValueV2(row,dataSchemaStruct)));                          
           streamOffsetScn=scn;
           return records;
