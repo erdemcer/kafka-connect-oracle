@@ -69,4 +69,5 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public Boolean getMultitenant() {return this.getBoolean(MULTITENANT);}
   public String getTableBlackList(){return this.getString(TABLE_BLACKLIST);}
   public Boolean getMapUnescapedStrings(){return this.getBoolean(MAP_UNESCAPED_STRINGS);}
+  
 }
