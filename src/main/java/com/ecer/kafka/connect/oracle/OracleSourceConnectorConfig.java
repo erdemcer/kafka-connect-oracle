@@ -51,7 +51,7 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
         .define(START_SCN,Type.STRING,"",Importance.LOW,"Start SCN")
         .define(MULTITENANT, Type.BOOLEAN, Importance.HIGH, "Database is multitenant (container)")
         .define(TABLE_BLACKLIST, Type.STRING, Importance.LOW, "Table will not be mined")
-        .define(MAP_UNESCAPED_STRINGS, Type.BOOLEAN, Importance.LOW, "Mapped values for data/before will have unescaped strings");
+        .define(MAP_UNESCAPED_STRINGS, Type.BOOLEAN, false, Importance.LOW, "Mapped values for data/before will have unescaped strings");
   }
 
   public String getDbNameAlias(){ return this.getString(DB_NAME_ALIAS);}

@@ -306,7 +306,7 @@ public class OracleSourceConnectorUtils{
             	// Issue #71
             	if (o instanceof StringValue) {
             		// Override value with non escaped value
-            		value = ((StringValue) o).getNotExcapedValue();
+            		value = cleanString(((StringValue) o).getNotExcapedValue());
             	}
             }
             
