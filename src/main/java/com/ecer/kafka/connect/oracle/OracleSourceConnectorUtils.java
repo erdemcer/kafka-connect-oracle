@@ -460,6 +460,6 @@ public class OracleSourceConnectorUtils{
       if (str.startsWith("'") && str.endsWith("'"))str=str.substring(1,str.length()-1);        
       if (str.startsWith("\"") && str.endsWith("\"") && str.length()>1)str=str.substring(1,str.length()-1);
       return str.replace("IS NULL","= NULL").trim();
-    }       
+    }
 
 }
