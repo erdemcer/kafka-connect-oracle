@@ -60,6 +60,7 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.update.Update;
+import net.sf.jsqlparser.expression.StringValue; // Issue #71
 
 /**
  * contains common utils for connector
@@ -249,7 +250,17 @@ public class OracleSourceConnectorUtils{
     
 
     protected Map<String,LinkedHashMap<String,String>> parseSql(String owner,String tableName,String sqlRedo) throws JSQLParserException , SQLException{
-
+    	/**
+    	 * Issue #71 updates.
+    	 * 
+    	 * JSQLParser defaults to returning the escaped value of strings. This causing
+    	 * the mapping here to return text already escaped. If a consumer that is intending
+    	 * on replicating the data from Oracle source to Oracle destination attempts to
+    	 * use or inspect data from the mapped values it will double escape single quotes
+    	 * causing data to be different from source and potentially over-running the size
+    	 * of the column causing errors.
+    	 */
+    	
       String sqlRedo2=sqlRedo.replace("IS NULL", "= NULL");
       Statement stmt = CCJSqlParserUtil.parse(sqlRedo2);
       final LinkedHashMap<String,String> dataMap = new LinkedHashMap<>();    
@@ -268,6 +279,13 @@ public class OracleSourceConnectorUtils{
         int i =0;
         for (String key : dataMap.keySet()){
           String value = cleanString(valueList.get(i).toString());
+          if (config.getMapUnescapedStrings()) {
+        	  // Issue #71
+        	  if (valueList.get(i) instanceof StringValue) {
+        		  // Override with non escaped string
+        		  value = cleanString(((StringValue)valueList.get(i)).getNotExcapedValue());
+        	  }
+          }
           dataMap.put(key, value);          
           i++;
         }  
@@ -280,9 +298,18 @@ public class OracleSourceConnectorUtils{
   
         Iterator<Expression> iterator = update.getExpressions().iterator();
         
-        for (String key : dataMap.keySet()){
+        for (String key : dataMap.keySet()){        	
             Object o = iterator.next();
+            
             String value =   cleanString(o.toString());
+            if (config.getMapUnescapedStrings()) {
+            	// Issue #71
+            	if (o instanceof StringValue) {
+            		// Override value with non escaped value
+            		value = ((StringValue) o).getNotExcapedValue();
+            	}
+            }
+            
             dataMap.put(key, value);            
         }
   
@@ -291,6 +318,12 @@ public class OracleSourceConnectorUtils{
             public void visit(final EqualsTo expr){                    
                 String col = cleanString(expr.getLeftExpression().toString());
                 String value = cleanString(expr.getRightExpression().toString());
+                if (config.getMapUnescapedStrings()) {
+                	// Issue #71
+                	if (expr.getRightExpression() instanceof StringValue) {
+                		value = cleanString(((StringValue)expr.getRightExpression()).getNotExcapedValue());
+                	}
+                }
                 beforeDataMap.put(col, value);
                 
             }
@@ -302,7 +335,13 @@ public class OracleSourceConnectorUtils{
           @Override
           public void visit(final EqualsTo expr){
             String col = cleanString(expr.getLeftExpression().toString());
-            String value = cleanString(expr.getRightExpression().toString());             
+            String value = cleanString(expr.getRightExpression().toString());
+            if (config.getMapUnescapedStrings()) {
+            	// Issue #71
+            	if (expr.getRightExpression() instanceof StringValue) {
+            		value = cleanString(((StringValue)expr.getRightExpression()).getNotExcapedValue());
+            	}
+            }
             beforeDataMap.put(col, value);
                        
           }          
