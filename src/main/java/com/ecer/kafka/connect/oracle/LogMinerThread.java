@@ -40,6 +40,7 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TEMPORARY_TABL
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.COMMIT_TIMESTAMP_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.XID_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.THREAD_FIELD;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_START;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_COMMIT;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_ROLLBACK;
@@ -47,7 +48,8 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_INSE
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_UPDATE;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_DELETE;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.ROLLBACK_FIELD;
-
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_DDL;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.DDL_TOPIC_POSTFIX;
 
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -208,7 +210,7 @@ public class LogMinerThread implements Runnable {
                 trnCollection.put(xid, transaction);
               }
 
-              if ((operation.equals(OPERATION_INSERT))||(operation.equals(OPERATION_UPDATE))||(operation.equals(OPERATION_DELETE))){                
+              if ((operation.equals(OPERATION_INSERT))||(operation.equals(OPERATION_UPDATE))||(operation.equals(OPERATION_DELETE))||(operation.equals(OPERATION_DDL))){
                 
                 boolean contSF = logMinerData.getBoolean(CSF_FIELD);
                 String rollback=logMinerData.getString(ROLLBACK_FIELD);
@@ -225,7 +227,7 @@ public class LogMinerThread implements Runnable {
                 String segName = logMinerData.getString(TABLE_NAME_FIELD);
                 String sqlRedo = logMinerData.getString(SQL_REDO_FIELD);
                 if (sqlRedo.contains(TEMPORARY_TABLE)) continue;
-        
+                if (operation.equals(OPERATION_DDL) && (logMinerData.getString("INFO").startsWith("INTERNAL DDL"))) continue;
                 while(contSF){
                   logMinerData.next();
                   sqlRedo +=  logMinerData.getString(SQL_REDO_FIELD);
@@ -234,7 +236,7 @@ public class LogMinerThread implements Runnable {
                 sqlX=sqlRedo;
                 //@Data row = new Data(scn, segOwner, segName, sqlRedo,timeStamp,operation);
                 //@topic = config.getTopic().equals("") ? (config.getDbNameAlias()+DOT+row.getSegOwner()+DOT+row.getSegName()).toUpperCase() : topic;
-                topicName = topicConfig.equals("") ? (dbNameAlias+DOT+segOwner+DOT+segName).toUpperCase() : topicConfig;
+                topicName = topicConfig.equals("") ? (dbNameAlias+DOT+segOwner+DOT+(operation.equals(OPERATION_DDL) ? DDL_TOPIC_POSTFIX : segName)).toUpperCase() : topicConfig;
                 DMLRow dmlRow = new DMLRow(xid, scn, commitScn , timeStamp, operation, segOwner, segName, rowId, sqlRedo,topicName,commitTimeStamp,rollback);
                 //#log.info("Row :{} , scn:{} , commitScn:{} ,sqlRedo:{}",ix,scn,commitScn,sqlX);
 
@@ -294,6 +296,7 @@ public class LogMinerThread implements Runnable {
 
   private SourceRecord createRecords(DMLRow dmlRow) throws Exception{
     dataSchemaStruct = utils.createDataSchema(dmlRow.getSegOwner(), dmlRow.getSegName(), dmlRow.getSqlRedo(),dmlRow.getOperation());
+    if (dmlRow.getOperation().equals(OPERATION_DDL)) dmlRow.setSegName(DDL_TOPIC_POSTFIX);
     return new SourceRecord(sourcePartition(), sourceOffset(dmlRow.getScn(),dmlRow.getCommitScn(),dmlRow.getRowId()), dmlRow.getTopic(),  dataSchemaStruct.getDmlRowSchema(), setValueV2(dmlRow,dataSchemaStruct));
   }
 

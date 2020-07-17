@@ -26,6 +26,7 @@ import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_FIEL
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_SCHEMA;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.TIMESTAMP_TYPE;
 import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.UQ_COLUMN_FIELD;
+import static com.ecer.kafka.connect.oracle.OracleConnectorSchema.OPERATION_DDL;
 
 import java.net.ConnectException;
 import java.sql.CallableStatement;
@@ -321,11 +322,14 @@ public class OracleSourceConnectorUtils{
       Schema dataSchema=EMPTY_SCHEMA;
       Struct dataStruct = null;
       Struct beforeDataStruct = null;      
-      
+      String tableKey = owner+DOT+tableName;
       String preSchemaName = (config.getDbNameAlias()+DOT+owner+DOT+tableName+DOT+"row").toLowerCase();      
-      
-      if (config.getParseDmlData()){
-        if (!tableSchema.containsKey(owner+DOT+tableName)){        
+      if (tableName!=null && operation.equals(OPERATION_DDL)&&tableSchema.containsKey(tableKey)){
+        tableSchema.remove(tableKey);
+        log.info("Dictionary details of Segment {} has been changed , removed from internal dictionary table",tableKey);  
+      }       
+      if (config.getParseDmlData() && (!operation.equals(OPERATION_DDL))){
+        if (!tableSchema.containsKey(tableKey)){
           if (!tableName.matches("^[\\w.-]+$")){
             throw new ConnectException("Invalid table name "+tableName+" for kafka topic.Check table name which must consist only a-z, A-Z, '0-9', ., - and _");
           }
@@ -337,7 +341,7 @@ public class OracleSourceConnectorUtils{
         LinkedHashMap<String,String> dataMap = allDataMap.get(DATA_ROW_FIELD);
         LinkedHashMap<String,String> beforeDataMap = allDataMap.get(BEFORE_DATA_ROW_FIELD);
 
-        dataSchema = tableSchema.get(owner+DOT+tableName);
+        dataSchema = tableSchema.get(tableKey);
         dataStruct = new Struct(dataSchema);
         beforeDataStruct = new Struct(dataSchema);
         

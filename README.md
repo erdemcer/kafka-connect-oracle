@@ -1,16 +1,17 @@
 # Kafka Connect Oracle
 
-kafka-connect-oracle is a Kafka source connector for capturing all row based DML changes from Oracle database and streaming these changes to Kafka.Change data capture logic is based on Oracle LogMiner solution.
+kafka-connect-oracle is a Kafka source connector for capturing all row based DML changes from Oracle database and streaming these changes to Kafka. Change data capture logic is based on Oracle LogMiner solution.
 
-Only committed changes are pulled from Oracle which are Insert,Update,Delete operations. All streamed messages have related full "sql_redo" statement and parsed fields with values of sql statements. Parsed fields and values are kept in proper field type in schemas.
+Only committed changes are pulled from Oracle which are Insert, Update, Delete operations. All streamed messages have related full "sql_redo" statement and parsed fields with values of sql statements. Parsed fields and values are kept in proper field type in schemas.
 
-Messages have old (before change) and new (after change) values of row fields for DML operations.Insert operation has only new values of row tagged as "data",update operation has new data tagged as "data" and also contains old values of row before change tagged as "before".Delete operation only contains old data tagged as "before".
+Messages have old (before change) and new (after change) values of row fields for DML operations. Insert operation has only new values of row tagged as "data". Update operation has new data tagged as "data" and also contains old values of row before change tagged as "before". Delete operation only contains old data tagged as "before".
 
 # News
 
+*   DDL Capture Support.DDL statements can be captured via this connector.All captured DDL statements are published into <db.name.alias>.<SEGMENT_OWNER>."_GENERIC_DDL" name formatted topic if no topic configuration property is set in property file.If a topic is set for configuration propery , all captured DDL statements are published into this topic with other statements.
 *   Partial rollback detection has been implemented
-*   With new relases of Oracle database like 19c, CONTINUOUS_MINE option is desupported and Logminer has lost ability mining of redo and archive logs continuously.First release of this connector was based on this property.  But Connector  has now ability to capture all changed data(DML changes) without CONTINUOUS_MINE option for new relases of Oracle database.For this change all test have been done on single instances.Working on RAC support
-*   Table blacklist configuration property can be used to not capture specified table or schemas
+*   With new relases of Oracle database like 19c, CONTINUOUS_MINE option is desupported and Logminer has lost ability mining of redo and archive logs continuously. First release of this connector was based on this property. This Connector now has the ability to capture all changed data(DML changes) without CONTINUOUS_MINE option for new relases of Oracle database. For this change all test have been done on single instances. Working on RAC support
+*   Table blacklist configuration property can be used to not capture specified tables or schemas
 
 # Sample Data
 
@@ -91,7 +92,7 @@ Enable supplemental logging
     sqlplus / as sysdba    
     SQL>alter database add supplemental log data (all) columns;
 
-In order to execute connector successfully, connector must be started with privileged Oracle user.If given user has DBA role , this step can be skipped else following scripts will be executed to create privileged user.
+In order to execute connector successfully, connector must be started with privileged Oracle user. If given user has DBA role, this step can be skipped. Otherwise, the following scripts need to be executed to create a privileged user:
 
     create role logmnr_role;
     grant create session to logmnr_role;
@@ -100,7 +101,7 @@ In order to execute connector successfully, connector must be started with privi
     grant  logmnr_role to kminer;
     alter user kminer quota unlimited on users;
 
-In a multitenant configuration, the privileged Oracle user must be a "common user" and some multitenant-specicic grants need to be made:
+In a multitenant configuration, the privileged Oracle user must be a "common user" and some multitenant-specific grants need to be made:
 
     create role c##logmnr_role;
     grant create session to c##logmnr_role;
@@ -178,9 +179,9 @@ In a multitenant configuration, the privileged Oracle user must be a "common use
 
 # Todo:
 
-    1.Implementation for DDL operations
-    2.Support for other Oracle specific data types
-    3.New implementations
-    4.Performance Tuning
-    5.Initial data load
-    6.Bug fix    
+    1. Implementation for DDL operations
+    2. Support for other Oracle specific data types
+    3. New implementations
+    4. Performance Tuning
+    5. Initial data load
+    6. Bug fix    

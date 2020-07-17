@@ -40,6 +40,7 @@ public class OracleConnectorSchema{
     public static final String ROW_ID_FIELD = "ROW_ID";
     public static final String SRC_CON_ID_FIELD = "SRC_CON_ID";
     public static final String XID_FIELD = "XID";
+    public static final String THREAD_FIELD = "THREAD#";
     public static final String ROLLBACK_FIELD = "ROLLBACK";
 
     public static final String NUMBER_TYPE = "NUMBER";
@@ -57,6 +58,8 @@ public class OracleConnectorSchema{
     public static final String OPERATION_INSERT = "INSERT";
     public static final String OPERATION_UPDATE = "UPDATE";
     public static final String OPERATION_DELETE = "DELETE";
+    public static final String OPERATION_DDL = "DDL";
 
     public static final int ORA_DESUPPORT_CM_VERSION=190000;
+    public static final String DDL_TOPIC_POSTFIX = "_GENERIC_DDL";
 }
