@@ -24,6 +24,7 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public static final String START_SCN = "start.scn";
   public static final String MULTITENANT = "multitenant";
   public static final String TABLE_BLACKLIST = "table.blacklist";
+  public static final String DML_TYPES = "dml.types";
 
   
   public OracleSourceConnectorConfig(ConfigDef config, Map<String, String> parsedConfig) {
@@ -49,7 +50,8 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
         .define(RESET_OFFSET,Type.BOOLEAN,Importance.HIGH,"Reset Offset")
         .define(START_SCN,Type.STRING,"",Importance.LOW,"Start SCN")
         .define(MULTITENANT, Type.BOOLEAN, Importance.HIGH, "Database is multitenant (container)")
-        .define(TABLE_BLACKLIST, Type.STRING, Importance.LOW, "Table will not be mined");
+        .define(TABLE_BLACKLIST, Type.STRING, Importance.LOW, "Table will not be mined")
+        .define(DML_TYPES, Type.STRING, "", Importance.LOW, "Types of DML to capture, CSV value of INSERT/UPDATE/DELETE");
   }
 
   public String getDbNameAlias(){ return this.getString(DB_NAME_ALIAS);}
@@ -66,4 +68,5 @@ public class OracleSourceConnectorConfig extends AbstractConfig {
   public String getStartScn(){return this.getString(START_SCN);}
   public Boolean getMultitenant() {return this.getBoolean(MULTITENANT);}
   public String getTableBlackList(){return this.getString(TABLE_BLACKLIST);}
+  public String getDMLTypes(){return this.getString(DML_TYPES);}
 }

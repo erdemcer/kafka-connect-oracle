@@ -4,7 +4,7 @@
 
     <groupId>com.ecer.kafka.connect.oracle</groupId>
     <artifactId>kafka-connect-oracle</artifactId>
-    <version>1.0</version>
+    <version>1.0.68</version>
     <packaging>jar</packaging>
 
     <name>kafka-connect-oracle</name>
