@@ -133,7 +133,7 @@ In a multitenant configuration, the privileged Oracle user must be a "common use
 |start.scn|Long|If it is set , offset value will be set this specified value and logminer will start at this SCN.If connector would like to be started from desired SCN , this property can be used.
 |multitenant|Boolean|If true, multitenant support is enabled.  If false, single instance configuration will be used.
 |table.blacklist|String|A comma separated list of database schema or table names which will not be captured.<br />For all schema capture **<SCHEMA_NAME>.*** <br /> For table capture **<SCHEMA_NAME>.<TABLE_NAME>** must be specified.|
-|dml.types|String|A comma separated list of DML operations . If not specified the default behavior of replicating all DML operations occurs,if specified only specified operations are captured.|
+|dml.types|String|A comma separated list of DML operations. If not specified the default behavior of replicating all DML operations occurs,if specified only specified operations are captured.|
 |||
 
 
