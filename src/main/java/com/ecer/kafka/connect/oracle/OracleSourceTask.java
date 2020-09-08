@@ -28,6 +28,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -265,10 +266,21 @@ public class OracleSourceTask extends SourceTask {
           topic = config.getTopic().equals("") ? (config.getDbNameAlias()+DOT+row.getSegOwner()+DOT+(operation.equals(OPERATION_DDL) ? DDL_TOPIC_POSTFIX : segName)).toUpperCase() : topic;
           //log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp()+" "+row.getSegName()+" "+row.getScn()+" "+commitScn);
           if (ix % 100 == 0) log.info(String.format("Fetched %s rows from database %s ",ix,config.getDbNameAlias())+" "+row.getTimeStamp());
-          dataSchemaStruct = utils.createDataSchema(segOwner, segName, sqlRedo,operation);   
+          dataSchemaStruct = utils.createDataSchema(segOwner, segName, sqlRedo,operation); 
           if (operation.equals(OPERATION_DDL)) row.setSegName(DDL_TOPIC_POSTFIX);     
-          records.add(new SourceRecord(sourcePartition(), sourceOffset(scn,commitScn,rowId), topic,  dataSchemaStruct.getDmlRowSchema(), setValueV2(row,dataSchemaStruct)));                          
-          streamOffsetScn=scn;
+          /**
+           * Issue 68
+           * 
+           * Addition of DML types to target to allow only replication of certain DML operations.
+           */
+          if (
+        		  config.getDMLTypes() == null 
+        		  || config.getDMLTypes().equals("") 
+        		  || Arrays.asList(config.getDMLTypes().toUpperCase().split(",")).contains(operation)) {
+        	  records.add(new SourceRecord(sourcePartition(), sourceOffset(scn,commitScn,rowId), topic,  dataSchemaStruct.getDmlRowSchema(), setValueV2(row,dataSchemaStruct)));
+        	  streamOffsetScn=scn;        	  
+          }                          
+
           return records;
         }
       }else{
